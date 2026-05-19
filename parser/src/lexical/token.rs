@@ -1,4 +1,6 @@
-use syntax::{EsString, IdentifierName, Range};
+use std::borrow::Cow;
+
+use syntax::{EsStr, EsString, IdentifierName, Range};
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum TokenContent {
@@ -91,6 +93,8 @@ pub(crate) enum TokenContent {
 	Or2,
 	/// "}"
 	CloseBrace,
+
+	Unknown(Cow<'static, EsStr>),
 }
 
 #[derive(Debug)]

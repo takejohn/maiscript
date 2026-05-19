@@ -1,6 +1,6 @@
-use std::{char, fmt::{Debug, Display, Write}, ops::Deref};
+use std::{borrow::Borrow, char, fmt::{Debug, Display, Write}, ops::Deref};
 
-use ref_cast::RefCast;
+use ref_cast::{RefCastCustom, ref_cast_custom};
 
 /// ECMAScript String
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -21,7 +21,7 @@ impl Deref for EsString {
 
 	fn deref(&self) -> &Self::Target {
 		let src: &[u16] = self.0.as_slice();
-		EsStr::ref_cast(src)
+		EsStr::from_u16s(src)
 	}
 }
 
@@ -37,9 +37,26 @@ impl Display for EsString {
 	}
 }
 
-#[derive(Debug, RefCast)]
+impl From<&EsStr> for EsString {
+	fn from(value: &EsStr) -> Self {
+		Self::from_char_code(value)
+	}
+}
+
+impl Borrow<EsStr> for EsString {
+	fn borrow(&self) -> &EsStr {
+		self
+	}
+}
+
+#[derive(Debug, RefCastCustom, PartialEq, Eq, PartialOrd, Ord)]
 #[repr(transparent)]
 pub struct EsStr([u16]);
+
+impl EsStr {
+	#[ref_cast_custom]
+	pub const fn from_u16s(from: &[u16]) -> &Self;
+}
 
 impl Display for EsStr {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
@@ -57,6 +74,14 @@ impl<'a> IntoIterator for &'a EsStr {
 
 	fn into_iter(self) -> Self::IntoIter {
 		self.0.iter().copied()
+	}
+}
+
+impl ToOwned for EsStr {
+	type Owned = EsString;
+
+	fn to_owned(&self) -> Self::Owned {
+		EsString::from(self)
 	}
 }
 

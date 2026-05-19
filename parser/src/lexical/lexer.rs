@@ -15,7 +15,7 @@ impl<I> Lexer<I> where I: Iterator<Item = CodePoint> {
 		let has_left_spacing = self.stream.skip_space();
 		self.stream.skip_comment()?;
 		let start = self.stream.get_pos().clone();
-		let content = match_token(&mut self.stream)?;
+		let content = match_token(&mut self.stream);
 		let end = self.stream.get_pos().clone();
 		let range = Range::new(start, end);
 		if matches!(content, TokenContent::NewLine) {

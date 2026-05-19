@@ -1,10 +1,15 @@
-use syntax::{CodePoint, EsString, code_point_of};
+use std::borrow::Cow;
 
-use crate::{error::{AiScriptSyntaxError, AiScriptSyntaxErrorSource, Result}, lexical::{char_stream::PeekableStream, code_points::{self, LEFT_SQUARE_BRACKET}, skip_space::SkipSpace, token::TokenContent}};
+use syntax::{CodePoint, EsStr, code_point_of};
+
+use crate::{lexical::{char_stream::PeekableStream, code_points, token::TokenContent}};
+
+const NUMBER_SIGN_2_ES_STR: &EsStr = EsStr::from_u16s(&['#' as u16, '#' as u16]);
+const AMPERSAND_ES_STR: &EsStr = EsStr::from_u16s(&['&' as u16]);
 
 /// This function assumes the input stream starts with a token.
 /// Input stream must not start with a space or comment.
-pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> Result<TokenContent> {
+pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> TokenContent {
 	macro_rules! trie {
 		{ $( $pat:pat => $expr:expr ),* $(,)? } => {
 			match stream.peek(0) {
@@ -18,85 +23,78 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 		};
 	}
 
-	let pos = stream.get_pos().clone();
-	let err = |source: AiScriptSyntaxErrorSource| {
-		Result::<TokenContent>::Err(AiScriptSyntaxError { source, pos })
-	};
-
 	trie!{
-		None => Ok(TokenContent::EOF),
-		Some(code_points::LINE_FEED) => Ok(TokenContent::NewLine),
+		None => TokenContent::EOF,
+		Some(code_points::LINE_FEED) => TokenContent::NewLine,
 		Some(code_points::EXCLAMATION_MARK) => trie!{
-			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::NotEq),
-			_ => Ok(TokenContent::Not)
+			Some(code_points::EQUALS_SIGN) => TokenContent::NotEq,
+			_ => TokenContent::Not
 		},
 		Some(code_points::QUOTATION_MARK) | Some(code_points::APOSTROPHE) => todo!(),
 		Some(code_points::NUMBER_SIGN) => trie!{
 			Some(code_points::NUMBER_SIGN) => trie!{
-				Some(code_points::NUMBER_SIGN) => Ok(TokenContent::Sharp3),
-				_ => err(AiScriptSyntaxErrorSource::InvalidCharacterSequence(
-					EsString::from_char_code(['#' as u16, '#' as u16]),
-				)),
+				Some(code_points::NUMBER_SIGN) => TokenContent::Sharp3,
+				_ => TokenContent::Unknown(Cow::Borrowed(NUMBER_SIGN_2_ES_STR)),
 			},
-			Some(code_points::LEFT_SQUARE_BRACKET) => Ok(TokenContent::OpenSharpBracket),
-			_ => Ok(TokenContent::Sharp),
+			Some(code_points::LEFT_SQUARE_BRACKET) => TokenContent::OpenSharpBracket,
+			_ => TokenContent::Sharp,
 		},
-		Some(code_points::PERCENT_SIGN) => Ok(TokenContent::Percent),
+		Some(code_points::PERCENT_SIGN) => TokenContent::Percent,
 		Some(code_points::AMPERSAND) => trie!{
-			Some(code_points::AMPERSAND) => Ok(TokenContent::And2),
-			_ => err(AiScriptSyntaxErrorSource::InvalidCharacter(code_points::AMPERSAND)),
+			Some(code_points::AMPERSAND) => TokenContent::And2,
+			_ => TokenContent::Unknown(Cow::Borrowed(AMPERSAND_ES_STR)),
 		},
-		Some(code_points::LEFT_PARENTHESIS) => Ok(TokenContent::OpenParen),
-		Some(code_points::RIGHT_PARENTHESIS) => Ok(TokenContent::CloseParen),
-		Some(code_points::ASTERISK) => Ok(TokenContent::Asterisk),
+		Some(code_points::LEFT_PARENTHESIS) => TokenContent::OpenParen,
+		Some(code_points::RIGHT_PARENTHESIS) => TokenContent::CloseParen,
+		Some(code_points::ASTERISK) => TokenContent::Asterisk,
 		Some(code_points::PLUS_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::PlusEq),
-			_ => Ok(TokenContent::Plus),
+			Some(code_points::EQUALS_SIGN) => TokenContent::PlusEq,
+			_ => TokenContent::Plus,
 		},
-		Some(code_points::COMMA) => Ok(TokenContent::Comma),
+		Some(code_points::COMMA) => TokenContent::Comma,
 		Some(code_points::HYPHEN_MINUS) => trie!{
-			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::MinusEq),
-			_ => Ok(TokenContent::Minus),
+			Some(code_points::EQUALS_SIGN) => TokenContent::MinusEq,
+			_ => TokenContent::Minus,
 		},
-		Some(code_points::FULL_STOP) => Ok(TokenContent::Dot),
-		Some(code_points::SOLIDUS) => Ok(TokenContent::Slash),
+		Some(code_points::FULL_STOP) => TokenContent::Dot,
+		Some(code_points::SOLIDUS) => TokenContent::Slash,
 		Some(code_points::COLON) => trie!{
-			Some(code_points::COLON) => Ok(TokenContent::Colon2),
-			_ => Ok(TokenContent::Colon)
+			Some(code_points::COLON) => TokenContent::Colon2,
+			_ => TokenContent::Colon
 		},
-		Some(code_points::SEMICOLON) => Ok(TokenContent::SemiColon),
+		Some(code_points::SEMICOLON) => TokenContent::SemiColon,
 		Some(code_points::LESS_THAN_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::LtEq),
-			Some(code_points::COLON) => Ok(TokenContent::Out),
-			_ => Ok(TokenContent::Lt),
+			Some(code_points::EQUALS_SIGN) => TokenContent::LtEq,
+			Some(code_points::COLON) => TokenContent::Out,
+			_ => TokenContent::Lt,
 		},
 		Some(code_points::EQUALS_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::Eq2),
-			Some(code_points::GREATER_THAN_SIGN) => Ok(TokenContent::Arrow),
-			_ => Ok(TokenContent::Eq),
+			Some(code_points::EQUALS_SIGN) => TokenContent::Eq2,
+			Some(code_points::GREATER_THAN_SIGN) => TokenContent::Arrow,
+			_ => TokenContent::Eq,
 		},
 		Some(code_points::GREATER_THAN_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::GtEq),
-			_ => Ok(TokenContent::Gt),
+			Some(code_points::EQUALS_SIGN) => TokenContent::GtEq,
+			_ => TokenContent::Gt,
 		},
-		Some(code_points::QUESTION_MARK) => Ok(TokenContent::Question),
-		Some(code_points::COMMERCIAL_AT) => Ok(TokenContent::At),
-		Some(code_points::LEFT_SQUARE_BRACKET) => Ok(TokenContent::OpenBracket),
-		Some(code_points::RIGHT_SQUARE_BRACKET) => Ok(TokenContent::CloseBracket),
-		Some(code_points::CIRCUMFLEX_ACCENT) => Ok(TokenContent::Hat),
-		Some(code_points::LEFT_CURLY_BRACKET) => Ok(TokenContent::OpenBrace),
+		Some(code_points::QUESTION_MARK) => TokenContent::Question,
+		Some(code_points::COMMERCIAL_AT) => TokenContent::At,
+		Some(code_points::LEFT_SQUARE_BRACKET) => TokenContent::OpenBracket,
+		Some(code_points::RIGHT_SQUARE_BRACKET) => TokenContent::CloseBracket,
+		Some(code_points::CIRCUMFLEX_ACCENT) => TokenContent::Hat,
+		Some(code_points::LEFT_CURLY_BRACKET) => TokenContent::OpenBrace,
 		Some(code_points::VERTICAL_LINE) => trie!{
-			Some(code_points::VERTICAL_LINE) => Ok(TokenContent::Or2),
-			_ => Ok(TokenContent::Or),
+			Some(code_points::VERTICAL_LINE) => TokenContent::Or2,
+			_ => TokenContent::Or,
 		},
-		Some(code_points::RIGHT_CURLY_BRACKET) => Ok(TokenContent::CloseBrace),
+		Some(code_points::RIGHT_CURLY_BRACKET) => TokenContent::CloseBrace,
 		Some(start_char) => {
 			if start_char == code_points::REVERSE_SOLIDUS {
 				if stream.peek(1) == Some(code_point_of!('u')) {
 					todo!()
 				} else {
 					stream.next();
-					Ok(TokenContent::BackSlash)
+					TokenContent::BackSlash
 				}
 			} else {
 				todo!()
@@ -107,12 +105,10 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 
 #[cfg(test)]
 mod tests {
-	use syntax::Position;
-
-use super::*;
+	use super::*;
 
 	struct MatchResult<I> where I: Iterator<Item = CodePoint> {
-		token: Result<TokenContent>,
+		token: TokenContent,
 		stream: PeekableStream<I>
 	}
 
@@ -120,7 +116,7 @@ use super::*;
 		fn matches(self) -> TokenContent {
 			let mut stream = self.stream;
 			assert!(stream.peek(0).is_none());
-			self.token.unwrap()
+			self.token
 		}
 	}
 
@@ -167,18 +163,8 @@ use super::*;
 	}
 
 	#[test]
-	fn error_sharp2() {
-		let Err(err) = to_token("##").token else {
-			unreachable!();
-		};
-		let AiScriptSyntaxError {
-			source: AiScriptSyntaxErrorSource::InvalidCharacterSequence(source),
-			pos
-		} = err else {
-			unreachable!()
-		};
-		assert_eq!(source, EsString::from_char_code(['#' as u16, '#' as u16]));
-		assert_eq!(pos, Position::ZERO);
+	fn unknown_sharp2() {
+		assert_eq!(to_token("##").matches(), TokenContent::Unknown(Cow::Borrowed(NUMBER_SIGN_2_ES_STR)));
 	}
 
 	#[test]
@@ -192,18 +178,8 @@ use super::*;
 	}
 
 	#[test]
-	fn error_and() {
-		let Err(err) = to_token("&").token else {
-			unreachable!();
-		};
-		let AiScriptSyntaxError {
-			source: AiScriptSyntaxErrorSource::InvalidCharacter(source),
-			pos
-		} = err else {
-			unreachable!()
-		};
-		assert_eq!(source, code_point_of!('&'));
-		assert_eq!(pos, Position::ZERO);
+	fn unknown_and() {
+		assert_eq!(to_token("&").matches(), TokenContent::Unknown(Cow::Borrowed(AMPERSAND_ES_STR)));
 	}
 
 	#[test]
