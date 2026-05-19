@@ -18,6 +18,7 @@ const LOWER_F_U32: u32 = 'f' as u32;
 const LOWER_Z_U32: u32 = 'z' as u32;
 const UNDERSCORE_U32: u32 = '_' as u32;
 
+pub(super) const LINE_FEED: CodePoint = code_point_of!('\n');
 pub(super) const EXCLAMATION_MARK: CodePoint = code_point_of!('!');
 pub(super) const QUOTATION_MARK: CodePoint = code_point_of!('"');
 pub(super) const NUMBER_SIGN: CodePoint = code_point_of!('#');

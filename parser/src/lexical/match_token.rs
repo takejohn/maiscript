@@ -18,11 +18,6 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 		};
 	}
 
-	if stream.peek(0).is_some_and(code_points::is_line_break_char) {
-		stream.skip_whitespace_and_comments()?;
-		return Ok(TokenContent::NewLine);
-	}
-
 	let pos = stream.get_pos().clone();
 	let err = |source: AiScriptSyntaxErrorSource| {
 		Result::<TokenContent>::Err(AiScriptSyntaxError { source, pos })
@@ -30,6 +25,7 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 
 	trie!{
 		None => Ok(TokenContent::EOF),
+		Some(code_points::LINE_FEED) => Ok(TokenContent::NewLine),
 		Some(code_points::EXCLAMATION_MARK) => trie!{
 			Some(code_points::EQUALS_SIGN) => Ok(TokenContent::NotEq),
 			_ => Ok(TokenContent::Not)
