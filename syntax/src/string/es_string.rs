@@ -1,4 +1,6 @@
-use std::{char, fmt::{Debug, Display, Write}, mem, ops::Deref};
+use std::{char, fmt::{Debug, Display, Write}, ops::Deref};
+
+use ref_cast::RefCast;
 
 /// ECMAScript String
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -19,10 +21,7 @@ impl Deref for EsString {
 
 	fn deref(&self) -> &Self::Target {
 		let src: &[u16] = self.0.as_slice();
-		// SAFETY: EsStr is just a wrapper of [u16] with #[repr(transparent)],
-		// so transmuting &[u16] to &EsStr is safe.
-		let dst: &EsStr = unsafe { mem::transmute(src) };
-		dst
+		EsStr::ref_cast(src)
 	}
 }
 
@@ -34,10 +33,11 @@ impl AsRef<EsStr> for EsString {
 
 impl Display for EsString {
 	fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
-		self.as_ref().fmt(f)
+		<EsStr as Display>::fmt(&self, f)
 	}
 }
 
+#[derive(Debug, RefCast)]
 #[repr(transparent)]
 pub struct EsStr([u16]);
 
