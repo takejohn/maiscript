@@ -10,95 +10,79 @@ const AMPERSAND_ES_STR: &EsStr = EsStr::from_u16s(&['&' as u16]);
 /// This function assumes the input stream starts with a token.
 /// Input stream must not start with a space or comment.
 pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> TokenContent {
-	macro_rules! trie {
-		{ $( $pat:pat => $expr:expr ),* $(,)? } => {
-			match stream.peek(0) {
-				$(
-					$pat => {
-						stream.next();
-						$expr
-					}
-				),*
-			}
-		};
-	}
-
-	trie!{
-		None => TokenContent::EOF,
-		Some(code_points::LINE_FEED) => TokenContent::NewLine,
-		Some(code_points::EXCLAMATION_MARK) => trie!{
-			Some(code_points::EQUALS_SIGN) => TokenContent::NotEq,
-			_ => TokenContent::Not
-		},
+	match stream.peek(0) {
+		None => { stream.next(); TokenContent::EOF },
+		Some(code_points::LINE_FEED) => { stream.next(); TokenContent::NewLine },
+		Some(code_points::EXCLAMATION_MARK) => { stream.next(); match stream.peek(0) {
+			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::NotEq },
+			_ => { stream.next(); TokenContent::Not }
+		} },
 		Some(code_points::QUOTATION_MARK) | Some(code_points::APOSTROPHE) => todo!(),
-		Some(code_points::NUMBER_SIGN) => trie!{
-			Some(code_points::NUMBER_SIGN) => trie!{
-				Some(code_points::NUMBER_SIGN) => TokenContent::Sharp3,
-				_ => TokenContent::Unknown(Cow::Borrowed(NUMBER_SIGN_2_ES_STR)),
-			},
-			Some(code_points::LEFT_SQUARE_BRACKET) => TokenContent::OpenSharpBracket,
-			_ => TokenContent::Sharp,
-		},
-		Some(code_points::PERCENT_SIGN) => TokenContent::Percent,
-		Some(code_points::AMPERSAND) => trie!{
-			Some(code_points::AMPERSAND) => TokenContent::And2,
-			_ => TokenContent::Unknown(Cow::Borrowed(AMPERSAND_ES_STR)),
-		},
-		Some(code_points::LEFT_PARENTHESIS) => TokenContent::OpenParen,
-		Some(code_points::RIGHT_PARENTHESIS) => TokenContent::CloseParen,
-		Some(code_points::ASTERISK) => TokenContent::Asterisk,
-		Some(code_points::PLUS_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => TokenContent::PlusEq,
-			_ => TokenContent::Plus,
-		},
-		Some(code_points::COMMA) => TokenContent::Comma,
-		Some(code_points::HYPHEN_MINUS) => trie!{
-			Some(code_points::EQUALS_SIGN) => TokenContent::MinusEq,
-			_ => TokenContent::Minus,
-		},
-		Some(code_points::FULL_STOP) => TokenContent::Dot,
-		Some(code_points::SOLIDUS) => TokenContent::Slash,
-		Some(code_points::COLON) => trie!{
-			Some(code_points::COLON) => TokenContent::Colon2,
-			_ => TokenContent::Colon
-		},
-		Some(code_points::SEMICOLON) => TokenContent::SemiColon,
-		Some(code_points::LESS_THAN_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => TokenContent::LtEq,
-			Some(code_points::COLON) => TokenContent::Out,
-			_ => TokenContent::Lt,
-		},
-		Some(code_points::EQUALS_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => TokenContent::Eq2,
-			Some(code_points::GREATER_THAN_SIGN) => TokenContent::Arrow,
-			_ => TokenContent::Eq,
-		},
-		Some(code_points::GREATER_THAN_SIGN) => trie!{
-			Some(code_points::EQUALS_SIGN) => TokenContent::GtEq,
-			_ => TokenContent::Gt,
-		},
-		Some(code_points::QUESTION_MARK) => TokenContent::Question,
-		Some(code_points::COMMERCIAL_AT) => TokenContent::At,
-		Some(code_points::LEFT_SQUARE_BRACKET) => TokenContent::OpenBracket,
-		Some(code_points::RIGHT_SQUARE_BRACKET) => TokenContent::CloseBracket,
-		Some(code_points::CIRCUMFLEX_ACCENT) => TokenContent::Hat,
-		Some(code_points::LEFT_CURLY_BRACKET) => TokenContent::OpenBrace,
-		Some(code_points::VERTICAL_LINE) => trie!{
-			Some(code_points::VERTICAL_LINE) => TokenContent::Or2,
-			_ => TokenContent::Or,
-		},
-		Some(code_points::RIGHT_CURLY_BRACKET) => TokenContent::CloseBrace,
-		Some(start_char) => {
-			if start_char == code_points::REVERSE_SOLIDUS {
-				if stream.peek(1) == Some(CodePoint::from_char('u')) {
-					todo!()
-				} else {
-					stream.next();
-					TokenContent::BackSlash
-				}
-			} else {
-				todo!()
-			}
+		Some(code_points::NUMBER_SIGN) => { stream.next(); match stream.peek(0) {
+			Some(code_points::NUMBER_SIGN) => { stream.next(); match stream.peek(0) {
+				Some(code_points::NUMBER_SIGN) => { stream.next(); TokenContent::Sharp3 },
+				_ => { stream.next(); TokenContent::Unknown(Cow::Borrowed(NUMBER_SIGN_2_ES_STR)) },
+			} },
+			Some(code_points::LEFT_SQUARE_BRACKET) => { stream.next(); TokenContent::OpenSharpBracket },
+			_ => { stream.next(); TokenContent::Sharp },
+		} },
+		Some(code_points::PERCENT_SIGN) => { stream.next(); TokenContent::Percent },
+		Some(code_points::AMPERSAND) => { stream.next(); match stream.peek(0) {
+			Some(code_points::AMPERSAND) => { stream.next(); TokenContent::And2 },
+			_ => { stream.next(); TokenContent::Unknown(Cow::Borrowed(AMPERSAND_ES_STR)) },
+		} },
+		Some(code_points::LEFT_PARENTHESIS) => { stream.next(); TokenContent::OpenParen },
+		Some(code_points::RIGHT_PARENTHESIS) => { stream.next(); TokenContent::CloseParen },
+		Some(code_points::ASTERISK) => { stream.next(); TokenContent::Asterisk },
+		Some(code_points::PLUS_SIGN) => { stream.next(); match stream.peek(0) {
+			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::PlusEq },
+			_ => { stream.next(); TokenContent::Plus },
+		} },
+		Some(code_points::COMMA) => { stream.next(); TokenContent::Comma },
+		Some(code_points::HYPHEN_MINUS) => { stream.next(); match stream.peek(0) {
+			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::MinusEq },
+			_ => { stream.next(); TokenContent::Minus },
+		} },
+		Some(code_points::FULL_STOP) => { stream.next(); TokenContent::Dot },
+		Some(code_points::SOLIDUS) => { stream.next(); TokenContent::Slash },
+		Some(code_points::COLON) => { stream.next(); match stream.peek(0) {
+			Some(code_points::COLON) => { stream.next(); TokenContent::Colon2 },
+			_ => { stream.next(); TokenContent::Colon }
+		} },
+		Some(code_points::SEMICOLON) => { stream.next(); TokenContent::SemiColon },
+		Some(code_points::LESS_THAN_SIGN) => { stream.next(); match stream.peek(0) {
+			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::LtEq },
+			Some(code_points::COLON) => { stream.next(); TokenContent::Out },
+			_ => { stream.next(); TokenContent::Lt },
+		} },
+		Some(code_points::EQUALS_SIGN) => { stream.next(); match stream.peek(0) {
+			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::Eq2 },
+			Some(code_points::GREATER_THAN_SIGN) => { stream.next(); TokenContent::Arrow },
+			_ => { stream.next(); TokenContent::Eq },
+		} },
+		Some(code_points::GREATER_THAN_SIGN) => { stream.next(); match stream.peek(0) {
+			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::GtEq },
+			_ => { stream.next(); TokenContent::Gt },
+		} },
+		Some(code_points::QUESTION_MARK) => { stream.next(); TokenContent::Question },
+		Some(code_points::COMMERCIAL_AT) => { stream.next(); TokenContent::At },
+		Some(code_points::LEFT_SQUARE_BRACKET) => { stream.next(); TokenContent::OpenBracket },
+		Some(code_points::REVERSE_SOLIDUS) => if stream.peek(1) == Some(CodePoint::from_char('u')) {
+			todo!()
+		} else {
+			stream.next();
+			TokenContent::BackSlash
+		}
+		Some(code_points::RIGHT_SQUARE_BRACKET) => { stream.next(); TokenContent::CloseBracket },
+		Some(code_points::CIRCUMFLEX_ACCENT) => { stream.next(); TokenContent::Hat },
+		Some(code_points::LEFT_CURLY_BRACKET) => { stream.next(); TokenContent::OpenBrace },
+		Some(code_points::VERTICAL_LINE) => { stream.next(); match stream.peek(0) {
+			Some(code_points::VERTICAL_LINE) => { stream.next(); TokenContent::Or2 },
+			_ => { stream.next(); TokenContent::Or },
+		} },
+		Some(code_points::RIGHT_CURLY_BRACKET) => { stream.next(); TokenContent::CloseBrace },
+		Some(_) => {
+			todo!()
 		},
 	}
 }
