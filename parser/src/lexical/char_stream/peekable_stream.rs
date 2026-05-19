@@ -69,11 +69,9 @@ impl<I> Iterator for PeekableStream<I> where I: Iterator<Item = CodePoint> {
 
 #[cfg(test)]
 mod tests {
-	use syntax::code_point_of;
-
 	use super::*;
 
-	const SOURCE: [CodePoint; 3] = [code_point_of!('a'), code_point_of!('b'), code_point_of!('c')];
+	const SOURCE: [CodePoint; 3] = [CodePoint::from_char('a'), CodePoint::from_char('b'), CodePoint::from_char('c')];
 
 	#[test]
 	fn starts_with_position_zero() {
@@ -85,7 +83,7 @@ mod tests {
 	fn position_is_not_changed_by_peek() {
 		let mut stream = PeekableStream::new(SOURCE);
 		let peeked = stream.peek(0);
-		assert_eq!(peeked, Some(code_point_of!('a')));
+		assert_eq!(peeked, Some(CodePoint::from_char('a')));
 		assert_eq!(*stream.get_pos(), Position::ZERO);
 	}
 
@@ -93,7 +91,7 @@ mod tests {
 	fn position_is_changed_by_next() {
 		let mut stream = PeekableStream::new(SOURCE);
 		let next = stream.next();
-		assert_eq!(next, Some(code_point_of!('a')));
+		assert_eq!(next, Some(CodePoint::from_char('a')));
 		assert_eq!(*stream.get_pos(), Position { line: 0, column: 1 });
 	}
 
@@ -101,24 +99,24 @@ mod tests {
 	fn get_peeked_value_by_next() {
 		let mut stream = PeekableStream::new(SOURCE);
 		let peeked = stream.peek(0);
-		assert_eq!(peeked, Some(code_point_of!('a')));
+		assert_eq!(peeked, Some(CodePoint::from_char('a')));
 		let next = stream.next();
-		assert_eq!(next, Some(code_point_of!('a')));
+		assert_eq!(next, Some(CodePoint::from_char('a')));
 	}
 
 	#[test]
 	fn peek_is_idempotent() {
 		let mut stream = PeekableStream::new(SOURCE);
 		let peeked_first = stream.peek(0);
-		assert_eq!(peeked_first, Some(code_point_of!('a')));
+		assert_eq!(peeked_first, Some(CodePoint::from_char('a')));
 		let peeked_second = stream.peek(0);
-		assert_eq!(peeked_second, Some(code_point_of!('a')));
+		assert_eq!(peeked_second, Some(CodePoint::from_char('a')));
 	}
 
 	#[test]
 	fn peek_further() {
 		let mut stream = PeekableStream::new(SOURCE);
 		let peeked = stream.peek(1);
-		assert_eq!(peeked, Some(code_point_of!('b')));
+		assert_eq!(peeked, Some(CodePoint::from_char('b')));
 	}
 }

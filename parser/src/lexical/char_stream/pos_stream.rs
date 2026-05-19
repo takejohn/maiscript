@@ -1,4 +1,4 @@
-use syntax::{CodePoint, Position, code_point_of};
+use syntax::{CodePoint, Position};
 
 #[derive(Debug)]
 /// Iterator of CodePoints with get_pos method which can be used to get current position.
@@ -26,7 +26,7 @@ impl<I> Iterator for PosStream<I> where I: Iterator<Item = CodePoint> {
 
 	fn next(&mut self) -> Option<Self::Item> {
 		let c = self.inner.next()?;
-		if c == code_point_of!('\n') {
+		if c == CodePoint::from_char('\n') {
 			self.pos.line += 1;
 			self.pos.column = 0;
 		} else {
@@ -53,7 +53,7 @@ mod tests {
 	fn surrogate_pair_is_retrieved_at_once() {
 		let source = "\u{1F92F}".encode_utf16();
 		let mut stream = from_utf16(source);
-		assert_eq!(stream.next(), Some(code_point_of!('\u{1F92F}')));
+		assert_eq!(stream.next(), Some(CodePoint::from_char('\u{1F92F}')));
 	}
 
 	#[test]
@@ -68,7 +68,7 @@ mod tests {
 		let source = "a\nb".encode_utf16();
 		let mut stream = from_utf16(source);
 		stream.next();
-		assert_eq!(stream.next(), Some(code_point_of!('\n')));
+		assert_eq!(stream.next(), Some(CodePoint::from_char('\n')));
 		assert_eq!(stream.get_pos(), &Position { line: 1, column: 0 });
 	}
 }

@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use syntax::{CodePoint, EsStr, code_point_of};
+use syntax::{CodePoint, EsStr};
 
 use crate::{lexical::{char_stream::PeekableStream, code_points, token::TokenContent}};
 
@@ -90,7 +90,7 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 		Some(code_points::RIGHT_CURLY_BRACKET) => TokenContent::CloseBrace,
 		Some(start_char) => {
 			if start_char == code_points::REVERSE_SOLIDUS {
-				if stream.peek(1) == Some(code_point_of!('u')) {
+				if stream.peek(1) == Some(CodePoint::from_char('u')) {
 					todo!()
 				} else {
 					stream.next();

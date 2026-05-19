@@ -2,25 +2,6 @@ use std::{fmt::Display, iter::Peekable};
 
 use crate::string::code_unit::{CodeUnit, DecodedCodeUnit, LeadingSurrogateChar, TrailingSurrogateChar};
 
-/// Creates a constant CodePoint.
-/// The argument must be in the range of integers from 0 to 0x10FFFF.
-#[macro_export]
-macro_rules! code_point_of {
-	( $c:expr $(,)? ) => {
-		const {
-			match ($c) as u32 {
-				0..=0x10FFFF => unsafe {
-					// SAFETY: It is safe because $c is in the range of integers from 0 to 0x10FFFF.
-					$crate::CodePoint::from_u32_unchecked($c as u32)
-				},
-				_ => panic!("The argument must be in the range of integers from 0 to 0x10FFFF."),
-			}
-		}
-	};
-}
-
-pub use code_point_of;
-
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
 pub struct CodePoint {
@@ -147,11 +128,11 @@ mod tests {
 			let utf16_seq: Vec<_> = "Hello".encode_utf16().collect();
 			let actual: Vec<_> = decode_utf16(utf16_seq).collect();
 			let expected = vec![
-				code_point_of!('H'),
-				code_point_of!('e'),
-				code_point_of!('l'),
-				code_point_of!('l'),
-				code_point_of!('o'),
+				CodePoint::from_char('H'),
+				CodePoint::from_char('e'),
+				CodePoint::from_char('l'),
+				CodePoint::from_char('l'),
+				CodePoint::from_char('o'),
 			];
 			assert_eq!(actual, expected);
 		}
@@ -161,8 +142,8 @@ mod tests {
 			let utf16_seq: Vec<_> = vec![0xD800, '0' as u16];
 			let actual: Vec<_> = decode_utf16(utf16_seq).collect();
 			let expected = vec![
-				code_point_of!(0xD800),
-				code_point_of!('0'),
+				CodePoint::from_u16(0xD800),
+				CodePoint::from_char('0'),
 			];
 			assert_eq!(actual, expected);
 		}
@@ -172,8 +153,8 @@ mod tests {
 			let utf16_seq: Vec<_> = vec!['0' as u16, 0xD800];
 			let actual: Vec<_> = decode_utf16(utf16_seq).collect();
 			let expected = vec![
-				code_point_of!('0'),
-				code_point_of!(0xD800),
+				CodePoint::from_char('0'),
+				CodePoint::from_u16(0xD800),
 			];
 			assert_eq!(actual, expected);
 		}
@@ -183,8 +164,8 @@ mod tests {
 			let utf16_seq: Vec<_> = vec![0xDC00, '0' as u16];
 			let actual: Vec<_> = decode_utf16(utf16_seq).collect();
 			let expected = vec![
-				code_point_of!(0xDC00),
-				code_point_of!('0'),
+				CodePoint::from_u16(0xDC00),
+				CodePoint::from_char('0'),
 			];
 			assert_eq!(actual, expected);
 		}
@@ -194,8 +175,8 @@ mod tests {
 			let utf16_seq: Vec<_> = vec!['0' as u16, 0xDC00];
 			let actual: Vec<_> = decode_utf16(utf16_seq).collect();
 			let expected = vec![
-				code_point_of!('0'),
-				code_point_of!(0xDC00),
+				CodePoint::from_char('0'),
+				CodePoint::from_u16(0xDC00),
 			];
 			assert_eq!(actual, expected);
 		}

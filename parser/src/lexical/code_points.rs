@@ -1,13 +1,7 @@
-use syntax::{CodePoint, code_point_of};
+use syntax::CodePoint;
 
-macro_rules! code_point_arr {
-		[ $($c:expr),* $(,)? ] => {
-			[ $( syntax::code_point_of!($c) ),* ]
-		};
-}
-
-const SPACE_CHARS: [CodePoint; 2] = code_point_arr![' ', '\t'];
-const LINE_BREAK_CHARS: [CodePoint; 2] = code_point_arr!['\r', '\n'];
+const SPACE_CHARS: [CodePoint; 2] = [CodePoint::from_char(' '), CodePoint::from_char('\t')];
+const LINE_BREAK_CHARS: [CodePoint; 2] = [CodePoint::from_char('\r'), CodePoint::from_char('\n')];
 const DIGIT_ZERO_U32: u32 = '0' as u32;
 const DIGIT_NINE_U32: u32 = '9' as u32;
 const UPPER_A_U32: u32 = 'A' as u32;
@@ -18,37 +12,37 @@ const LOWER_F_U32: u32 = 'f' as u32;
 const LOWER_Z_U32: u32 = 'z' as u32;
 const UNDERSCORE_U32: u32 = '_' as u32;
 
-pub(super) const LINE_FEED: CodePoint = code_point_of!('\n');
-pub(super) const EXCLAMATION_MARK: CodePoint = code_point_of!('!');
-pub(super) const QUOTATION_MARK: CodePoint = code_point_of!('"');
-pub(super) const NUMBER_SIGN: CodePoint = code_point_of!('#');
-pub(super) const DOLLAR_SING: CodePoint = code_point_of!('$');
-pub(super) const PERCENT_SIGN: CodePoint = code_point_of!('%');
-pub(super) const AMPERSAND: CodePoint = code_point_of!('&');
-pub(super) const APOSTROPHE: CodePoint = code_point_of!('\'');
-pub(super) const LEFT_PARENTHESIS: CodePoint = code_point_of!('(');
-pub(super) const RIGHT_PARENTHESIS: CodePoint = code_point_of!(')');
-pub(super) const ASTERISK: CodePoint = code_point_of!('*');
-pub(super) const PLUS_SIGN: CodePoint = code_point_of!('+');
-pub(super) const COMMA: CodePoint = code_point_of!(',');
-pub(super) const HYPHEN_MINUS: CodePoint = code_point_of!('-');
-pub(super) const FULL_STOP: CodePoint = code_point_of!('.');
-pub(super) const SOLIDUS: CodePoint = code_point_of!('/');
-pub(super) const COLON: CodePoint = code_point_of!(':');
-pub(super) const SEMICOLON: CodePoint = code_point_of!(';');
-pub(super) const LESS_THAN_SIGN: CodePoint = code_point_of!('<');
-pub(super) const EQUALS_SIGN: CodePoint = code_point_of!('=');
-pub(super) const GREATER_THAN_SIGN: CodePoint = code_point_of!('>');
-pub(super) const QUESTION_MARK: CodePoint = code_point_of!('?');
-pub(super) const COMMERCIAL_AT: CodePoint = code_point_of!('@');
-pub(super) const LEFT_SQUARE_BRACKET: CodePoint = code_point_of!('[');
-pub(super) const REVERSE_SOLIDUS: CodePoint = code_point_of!('\\');
-pub(super) const RIGHT_SQUARE_BRACKET: CodePoint = code_point_of!(']');
-pub(super) const LEFT_CURLY_BRACKET: CodePoint = code_point_of!('{');
-pub(super) const VERTICAL_LINE: CodePoint = code_point_of!('|');
-pub(super) const RIGHT_CURLY_BRACKET: CodePoint = code_point_of!('}');
-pub(super) const CIRCUMFLEX_ACCENT: CodePoint = code_point_of!('^');
-pub(super) const GRAVE_ACCENT: CodePoint = code_point_of!('`');
+pub(super) const LINE_FEED: CodePoint = CodePoint::from_char('\n');
+pub(super) const EXCLAMATION_MARK: CodePoint = CodePoint::from_char('!');
+pub(super) const QUOTATION_MARK: CodePoint = CodePoint::from_char('"');
+pub(super) const NUMBER_SIGN: CodePoint = CodePoint::from_char('#');
+pub(super) const DOLLAR_SING: CodePoint = CodePoint::from_char('$');
+pub(super) const PERCENT_SIGN: CodePoint = CodePoint::from_char('%');
+pub(super) const AMPERSAND: CodePoint = CodePoint::from_char('&');
+pub(super) const APOSTROPHE: CodePoint = CodePoint::from_char('\'');
+pub(super) const LEFT_PARENTHESIS: CodePoint = CodePoint::from_char('(');
+pub(super) const RIGHT_PARENTHESIS: CodePoint = CodePoint::from_char(')');
+pub(super) const ASTERISK: CodePoint = CodePoint::from_char('*');
+pub(super) const PLUS_SIGN: CodePoint = CodePoint::from_char('+');
+pub(super) const COMMA: CodePoint = CodePoint::from_char(',');
+pub(super) const HYPHEN_MINUS: CodePoint = CodePoint::from_char('-');
+pub(super) const FULL_STOP: CodePoint = CodePoint::from_char('.');
+pub(super) const SOLIDUS: CodePoint = CodePoint::from_char('/');
+pub(super) const COLON: CodePoint = CodePoint::from_char(':');
+pub(super) const SEMICOLON: CodePoint = CodePoint::from_char(';');
+pub(super) const LESS_THAN_SIGN: CodePoint = CodePoint::from_char('<');
+pub(super) const EQUALS_SIGN: CodePoint = CodePoint::from_char('=');
+pub(super) const GREATER_THAN_SIGN: CodePoint = CodePoint::from_char('>');
+pub(super) const QUESTION_MARK: CodePoint = CodePoint::from_char('?');
+pub(super) const COMMERCIAL_AT: CodePoint = CodePoint::from_char('@');
+pub(super) const LEFT_SQUARE_BRACKET: CodePoint = CodePoint::from_char('[');
+pub(super) const REVERSE_SOLIDUS: CodePoint = CodePoint::from_char('\\');
+pub(super) const RIGHT_SQUARE_BRACKET: CodePoint = CodePoint::from_char(']');
+pub(super) const LEFT_CURLY_BRACKET: CodePoint = CodePoint::from_char('{');
+pub(super) const VERTICAL_LINE: CodePoint = CodePoint::from_char('|');
+pub(super) const RIGHT_CURLY_BRACKET: CodePoint = CodePoint::from_char('}');
+pub(super) const CIRCUMFLEX_ACCENT: CodePoint = CodePoint::from_char('^');
+pub(super) const GRAVE_ACCENT: CodePoint = CodePoint::from_char('`');
 
 pub(super) fn is_space_char(c: CodePoint) -> bool {
 	SPACE_CHARS.contains(&c)

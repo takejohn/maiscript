@@ -1,4 +1,4 @@
-use syntax::{CodePoint, code_point, code_point_of};
+use syntax::{CodePoint, code_point};
 
 use crate::lexical::char_stream::{peekable_stream::PeekableStream, pos_stream::PosStream};
 
@@ -8,7 +8,7 @@ pub(crate) fn create_char_stream<I>(chars: impl IntoIterator<IntoIter = I>) -> P
 {
 	let decoder = code_point::decode_utf16(chars);
 	// Iterator rejecting CodePoints of carriage return.
-	let filter = decoder.filter((|c| *c != code_point_of!('\r')) as fn (&CodePoint) -> bool);
+	let filter = decoder.filter((|c| *c != CodePoint::from_char('\r')) as fn (&CodePoint) -> bool);
 	let pos_stream = PosStream::new(filter);
 	let peekable_stream = PeekableStream::new(pos_stream);
 	return peekable_stream;
