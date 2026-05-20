@@ -1,6 +1,6 @@
 use std::{fmt::Display, iter::Peekable};
 
-use crate::string::code_unit::{CodeUnit, DecodedCodeUnit, LeadingSurrogateChar, TrailingSurrogateChar};
+use crate::string::code_unit::{BmpChar, CodeUnit, DecodedCodeUnit, LeadingSurrogateChar, TrailingSurrogateChar};
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -61,6 +61,11 @@ impl CodePoint {
 	pub fn as_char(&self) -> Option<char> {
 		char::from_u32(self.code_point())
 	}
+
+	pub fn code_units(self) -> Utf16CharIter {
+		let c: Utf16Char = self.into();
+		c.into_iter()
+	}
 }
 
 impl From<u16> for CodePoint {
@@ -114,6 +119,83 @@ impl<I> Iterator for DecodeUtf16<I> where I: Iterator<Item = u16> {
 
 pub fn decode_utf16<I>(iter: impl IntoIterator<IntoIter = I>) -> DecodeUtf16<I> where I: Iterator<Item = u16> {
 	DecodeUtf16 { iter: iter.into_iter().peekable() }
+}
+
+pub enum Utf16Char {
+	Bmp(BmpChar),
+	UnpairedLeadingSurrogate(LeadingSurrogateChar),
+	UnpairedTrailingSurrogate(TrailingSurrogateChar),
+	SurrogatePair(LeadingSurrogateChar, TrailingSurrogateChar),
+}
+
+impl From<CodePoint> for Utf16Char {
+	fn from(value: CodePoint) -> Self {
+		let cp = value.code_point();
+		match cp {
+			0..=0xFFFF => match DecodedCodeUnit::from(cp as u16) {
+				DecodedCodeUnit::Bmp(c) => Utf16Char::Bmp(c),
+				DecodedCodeUnit::LeadingSurrogate(c) => Utf16Char::UnpairedLeadingSurrogate(c),
+				DecodedCodeUnit::TrailingSurrogate(c) => Utf16Char::UnpairedTrailingSurrogate(c),
+			},
+			0x10000..=0x10FFFF => {
+				// cu1 is in the range of integers from 0xD800 to 0xDBFF
+				let cu1 = ((cp - 0x10000) / 0x400 + 0xD800) as u16;
+				// cu2 is in the range of integers from 0xDC00 to 0xDFFF
+				let cu2 = ((cp - 0x10000) % 0x400 + 0xDC00) as u16;
+				Self::SurrogatePair(
+					// SAFETY: It is safe because cu1 is in the range of integers from 0xD800 to 0xDBFF
+					unsafe { LeadingSurrogateChar::new_unchecked(cu1) },
+					// SAFETY: It is safe because cu2 is in the range of integers from 0xDC00 to 0xDFFF
+					unsafe { TrailingSurrogateChar::new_unchecked(cu2) },
+				)
+			},
+			0x110000.. => unreachable!(),
+		}
+	}
+}
+
+impl IntoIterator for Utf16Char {
+	type Item = u16;
+
+	type IntoIter = Utf16CharIter;
+
+	fn into_iter(self) -> Self::IntoIter {
+		let state = match self {
+			Utf16Char::Bmp(c) => Utf16CharIterState::Single(c.as_u16()),
+			Utf16Char::UnpairedLeadingSurrogate(c) => Utf16CharIterState::Single(c.as_u16()),
+			Utf16Char::UnpairedTrailingSurrogate(c) => Utf16CharIterState::Single(c.as_u16()),
+			Utf16Char::SurrogatePair(c0, c1) => Utf16CharIterState::Double(c0.as_u16(), c1.as_u16()),
+		};
+		Utf16CharIter { state }
+	}
+}
+
+enum Utf16CharIterState {
+	Double(u16, u16),
+	Single(u16),
+	None,
+}
+
+pub struct Utf16CharIter {
+	state: Utf16CharIterState,
+}
+
+impl Iterator for Utf16CharIter {
+	type Item = u16;
+
+	fn next(&mut self) -> Option<Self::Item> {
+		match self.state {
+			Utf16CharIterState::Double(first, second) => {
+				self.state = Utf16CharIterState::Single(second);
+				Some(first)
+			},
+			Utf16CharIterState::Single(first) => {
+				self.state = Utf16CharIterState::None;
+				Some(first)
+			},
+			Utf16CharIterState::None => None,
+		}
+	}
 }
 
 #[cfg(test)]

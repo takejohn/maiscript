@@ -2,17 +2,31 @@ use std::{borrow::Borrow, char, fmt::{Debug, Display, Write}, ops::Deref};
 
 use ref_cast::{RefCastCustom, ref_cast_custom};
 
+use crate::CodePoint;
+
 /// ECMAScript String
-#[derive(Clone, Debug, PartialEq, Eq)]
+#[derive(Clone, Debug, PartialEq, Eq, Default)]
 pub struct EsString(Vec<u16>);
 
 impl EsString {
+	pub fn new() -> Self {
+		Self(Vec::new())
+	}
+
 	pub fn from_char_code(char_code: impl IntoIterator<Item = u16>) -> Self {
 		Self(Vec::from_iter(char_code.into_iter()))
 	}
 
 	pub fn as_es_str(&self) -> &EsStr {
 		self
+	}
+
+	pub fn push_char_code(&mut self, ch: u16) {
+		self.0.push(ch);
+	}
+
+	pub fn push_code_point(&mut self, cp: CodePoint) {
+		self.0.extend(cp.code_units());
 	}
 }
 
@@ -40,6 +54,12 @@ impl Display for EsString {
 impl From<&EsStr> for EsString {
 	fn from(value: &EsStr) -> Self {
 		Self::from_char_code(value)
+	}
+}
+
+impl From<&str> for EsString {
+	fn from(value: &str) -> Self {
+		Self::from_char_code(value.encode_utf16())
 	}
 }
 

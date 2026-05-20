@@ -1,7 +1,9 @@
 use std::fmt::Debug;
 
 /// A marker for UTF-16 code unit types.
-pub trait CodeUnit: Into<u16> + Debug + Copy + Ord {}
+pub trait CodeUnit: Into<u16> + Debug + Copy + Ord {
+	fn as_u16(&self) -> u16;
+}
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -34,7 +36,11 @@ impl From<BmpChar> for u16 {
 	}
 }
 
-impl CodeUnit for BmpChar {}
+impl CodeUnit for BmpChar {
+	fn as_u16(&self) -> u16 {
+		self.code
+	}
+}
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -67,7 +73,11 @@ impl From<LeadingSurrogateChar> for u16 {
 	}
 }
 
-impl CodeUnit for LeadingSurrogateChar {}
+impl CodeUnit for LeadingSurrogateChar {
+	fn as_u16(&self) -> u16 {
+		self.code
+	}
+}
 
 #[repr(transparent)]
 #[derive(Debug, Clone, Copy, PartialEq, Eq, PartialOrd, Ord)]
@@ -100,7 +110,11 @@ impl From<TrailingSurrogateChar> for u16 {
 	}
 }
 
-impl CodeUnit for TrailingSurrogateChar {}
+impl CodeUnit for TrailingSurrogateChar {
+	fn as_u16(&self) -> u16 {
+			self.code
+	}
+}
 
 pub enum DecodedCodeUnit {
 	Bmp(BmpChar),

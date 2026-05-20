@@ -2,7 +2,9 @@ use std::borrow::Cow;
 
 use syntax::{CodePoint, EsStr};
 
-use crate::{lexical::{char_stream::PeekableStream, code_points, token::TokenContent}};
+use crate::lexical::{char_stream::PeekableStream, code_points, match_token::string_literal::read_string_literal, token::TokenContent};
+
+mod string_literal;
 
 const NUMBER_SIGN_2_ES_STR: &EsStr = EsStr::from_u16s(&['#' as u16, '#' as u16]);
 const AMPERSAND_ES_STR: &EsStr = EsStr::from_u16s(&['&' as u16]);
@@ -17,7 +19,7 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 			Some(code_points::EQUALS_SIGN) => { stream.next(); TokenContent::NotEq },
 			_ => { stream.next(); TokenContent::Not }
 		} },
-		Some(code_points::QUOTATION_MARK) | Some(code_points::APOSTROPHE) => todo!(),
+		Some(code_points::QUOTATION_MARK) | Some(code_points::APOSTROPHE) => read_string_literal(stream),
 		Some(code_points::NUMBER_SIGN) => { stream.next(); match stream.peek(0) {
 			Some(code_points::NUMBER_SIGN) => { stream.next(); match stream.peek(0) {
 				Some(code_points::NUMBER_SIGN) => { stream.next(); TokenContent::Sharp3 },
@@ -89,6 +91,8 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 
 #[cfg(test)]
 mod tests {
+	use syntax::EsString;
+
 	use super::*;
 
 	struct MatchResult<I> where I: Iterator<Item = CodePoint> {
@@ -129,6 +133,21 @@ mod tests {
 	#[test]
 	fn token_not_eq() {
 		assert_eq!(to_token("!=").matches(), TokenContent::NotEq);
+	}
+
+	#[test]
+	fn double_quote_string_literal() {
+		assert_eq!(to_token(r#""abc""#).matches(), TokenContent::StringLiteral(EsString::from("abc")));
+	}
+
+	#[test]
+	fn single_quote_string_literal() {
+		assert_eq!(to_token("'abc'").matches(), TokenContent::StringLiteral(EsString::from("abc")));
+	}
+
+	#[test]
+	fn incomplete_string_literal() {
+		assert_eq!(to_token("\"").matches(), TokenContent::IncompleteStringLiteral);
 	}
 
 	#[test]

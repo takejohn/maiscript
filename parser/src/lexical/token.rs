@@ -13,6 +13,8 @@ pub(crate) enum TokenContent {
 	// literal
 	NumberLiteral(EsString),
 	StringLiteral(EsString),
+	/// string literal without closing quotation mark
+	IncompleteStringLiteral,
 
 	// template string
 	TemplateStart,
