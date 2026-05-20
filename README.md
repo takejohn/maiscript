@@ -105,12 +105,14 @@ $enum Option {
 	Some [any],
 }
 
-let option = $Option:Some!["Hello"]
+let none = $Option:None![]
+let some = $Option:Some!["Hello"]
 ```
 
 Out
 ```
-let option = ["Hello"]
+let none = [0]
+let some = [1, "Hello"]
 ```
 
 ---
