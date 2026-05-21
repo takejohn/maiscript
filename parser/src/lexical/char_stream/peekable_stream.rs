@@ -47,6 +47,18 @@ impl<I> PeekableStream<I> where I: Iterator<Item = CodePoint> {
 			},
 		}
 	}
+
+	pub(crate) fn next_if(&mut self, predicate: impl FnOnce(CodePoint) -> bool) -> Option<CodePoint> {
+		let peeked = self.peek(0).filter(|&cp| predicate(cp));
+		if peeked.is_some() {
+			self.next();
+		}
+		peeked
+	}
+
+	pub(crate) fn next_if_eq(&mut self, expected: CodePoint) -> Option<CodePoint> {
+		self.next_if(|cp| cp == expected)
+	}
 }
 
 impl<I> Iterator for PeekableStream<I> where I: Iterator<Item = CodePoint> {

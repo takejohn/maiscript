@@ -28,6 +28,10 @@ impl EsString {
 	pub fn push_code_point(&mut self, cp: CodePoint) {
 		self.0.extend(cp.code_units());
 	}
+
+	pub fn is_empty(&self) -> bool {
+		self.0.is_empty()
+	}
 }
 
 impl Deref for EsString {

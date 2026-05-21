@@ -12,6 +12,8 @@ pub(crate) enum TokenContent {
 
 	// literal
 	NumberLiteral(EsString),
+	/// number literal with trailing decimal point lacking fraction part
+	IncompleteNumberLiteral(EsString),
 	StringLiteral(EsString),
 	/// string literal without closing quotation mark
 	IncompleteStringLiteral,

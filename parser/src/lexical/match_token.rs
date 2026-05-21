@@ -2,8 +2,9 @@ use std::borrow::Cow;
 
 use syntax::{CodePoint, EsStr};
 
-use crate::lexical::{char_stream::PeekableStream, code_points, match_token::string_literal::read_string_literal, token::TokenContent};
+use crate::lexical::{char_stream::PeekableStream, code_points, match_token::{number_literal::read_number_literal, string_literal::read_string_literal}, token::TokenContent};
 
+mod number_literal;
 mod string_literal;
 
 const NUMBER_SIGN_2_ES_STR: &EsStr = EsStr::from_u16s(&['#' as u16, '#' as u16]);
@@ -84,6 +85,9 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 		} },
 		Some(code_points::RIGHT_CURLY_BRACKET) => { stream.next(); TokenContent::CloseBrace },
 		Some(_) => {
+			if let Some(digit_token) = read_number_literal(stream) {
+				return digit_token;
+			};
 			todo!()
 		},
 	}
@@ -338,5 +342,15 @@ mod tests {
 	#[test]
 	fn token_close_brace() {
 		assert_eq!(to_token("}").matches(), TokenContent::CloseBrace);
+	}
+
+	#[test]
+	fn token_number_literal() {
+		assert_eq!(to_token("123.456").matches(), TokenContent::NumberLiteral(EsString::from("123.456")));
+	}
+
+	#[test]
+	fn token_incomplete_number_literal() {
+		assert_eq!(to_token("123.").matches(), TokenContent::IncompleteNumberLiteral(EsString::from("123.")));
 	}
 }
