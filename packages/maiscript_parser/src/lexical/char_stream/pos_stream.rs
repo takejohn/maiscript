@@ -1,4 +1,4 @@
-use syntax::{CodePoint, Position};
+use maiscript_syntax::{CodePoint, Position};
 
 #[derive(Debug)]
 /// Iterator of CodePoints with get_pos method which can be used to get current position.
@@ -38,7 +38,7 @@ impl<I> Iterator for PosStream<I> where I: Iterator<Item = CodePoint> {
 
 #[cfg(test)]
 mod tests {
-	use syntax::code_point;
+	use maiscript_syntax::code_point;
 
 	use super::*;
 

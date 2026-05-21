@@ -1,4 +1,4 @@
-use syntax::CodePoint;
+use maiscript_syntax::CodePoint;
 
 const SPACE_CHARS: [CodePoint; 2] = [CodePoint::from_char(' '), CodePoint::from_char('\t')];
 const LINE_BREAK_CHARS: [CodePoint; 2] = [CodePoint::from_char('\r'), CodePoint::from_char('\n')];

@@ -1,4 +1,4 @@
-use syntax::{CodePoint, code_point};
+use maiscript_syntax::{CodePoint, code_point};
 
 use crate::lexical::char_stream::{peekable_stream::PeekableStream, pos_stream::PosStream};
 

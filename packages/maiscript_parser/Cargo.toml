@@ -1,8 +1,8 @@
 [package]
-name = "parser"
+name = "maiscript_parser"
 version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-"syntax" = { path = "../syntax" }
+"maiscript_syntax" = { path = "../maiscript_syntax" }
 thiserror = "2.0.18"

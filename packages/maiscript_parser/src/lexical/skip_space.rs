@@ -1,4 +1,4 @@
-use syntax::{CodePoint};
+use maiscript_syntax::{CodePoint};
 
 use crate::{error::{AiScriptSyntaxError, AiScriptSyntaxErrorSource, Result}, lexical::{char_stream::PeekableStream, code_points::*}};
 
@@ -138,7 +138,7 @@ mod tests {
 	}
 
 	mod skip_whitespace_and_comments {
-		use syntax::Position;
+		use maiscript_syntax::Position;
 
 		use super::*;
 

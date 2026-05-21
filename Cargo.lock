@@ -3,11 +3,18 @@
 version = 4
 
 [[package]]
-name = "parser"
+name = "maiscript_parser"
 version = "0.1.0"
 dependencies = [
- "syntax",
+ "maiscript_syntax",
  "thiserror",
+]
+
+[[package]]
+name = "maiscript_syntax"
+version = "0.1.0"
+dependencies = [
+ "ref-cast",
 ]
 
 [[package]]
@@ -57,13 +64,6 @@ dependencies = [
  "proc-macro2",
  "quote",
  "unicode-ident",
-]
-
-[[package]]
-name = "syntax"
-version = "0.1.0"
-dependencies = [
- "ref-cast",
 ]
 
 [[package]]

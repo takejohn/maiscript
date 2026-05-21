@@ -1,4 +1,4 @@
-use syntax::{CodePoint, Range};
+use maiscript_syntax::{CodePoint, Range};
 
 use crate::{error::Result, lexical::{char_stream::PeekableStream, match_token::match_token, skip_space::SkipSpace, token::{TemplateToken, Token, TokenContent}}};
 

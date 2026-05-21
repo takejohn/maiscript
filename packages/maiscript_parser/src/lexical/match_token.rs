@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use syntax::{CodePoint, EsStr};
+use maiscript_syntax::{CodePoint, EsStr};
 
 use crate::lexical::{char_stream::PeekableStream, code_points, match_token::{number_literal::read_number_literal, string_literal::read_string_literal}, token::TokenContent};
 
@@ -95,7 +95,7 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 
 #[cfg(test)]
 mod tests {
-	use syntax::EsString;
+	use maiscript_syntax::EsString;
 
 	use super::*;
 
