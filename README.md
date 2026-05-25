@@ -14,12 +14,12 @@
 
 In
 ```
-$struct User {
+struct User {
 	name: str,
 	email: str,
 }
 
-let user: $User = $User!{ name: "John", email: "john@example.com" }
+let user: User = User { name: "John", email: "john@example.com" }
 <: user.name
 <: user.email
 ```
@@ -32,29 +32,60 @@ let user = { a: "John", b: "john@example.com" }
 
 ---
 
-In
-```
-$struct Pair [any, any]
-
-let pair: $Pair = $Pair![42, "Hello"]
-<: Pair[0]
-<: Pair[1]
-```
-Out
-```
-let pair = [42, "Hello"]
-<: pair[0]
-<: pair[1]
-```
-
----
-
 ### Enum
 #### Examples
 
 In
 ```
-$enum Shape {
+enum Fruit {
+	Apple,
+	Banana,
+}
+
+let fruit = Fruit:Apple
+<: fruit == Fruit:Apple
+```
+
+Out
+```
+let fruit = 0
+<: fruit == 0
+```
+
+---
+
+### Tagged Union
+#### Examples
+
+In
+```
+enum Tag {
+	Num,
+	Str,
+}
+
+union Tagged(tag: Tag) {
+	Num {
+		value: num,
+	},
+	Str {
+		value: str,
+	},
+}
+
+let num: Tagged = Tagged:Num { value: 42 }
+<: num.tag == Tag:Num
+```
+
+Out
+```
+let tagged = { a: 0, b: 42 }
+```
+---
+
+In
+```
+union Shape(tag) {
 	Rectangle {
 		width: num,
 		height: num,
@@ -65,7 +96,7 @@ $enum Shape {
 }
 
 @show(shape: Shape): void {
-	if shape $is $Shape:Rectangle {
+	if shape.tag == Shape:Rectangle {
 		<: shape.width
 		<: shape.height
 	} else {
@@ -73,9 +104,9 @@ $enum Shape {
 	}
 }
 
-let rectangle: Shape = $Shape:Rectangle!{ width: 10, height: 20 }
+let rectangle: Shape = Shape:Rectangle { width: 10, height: 20 }
 show(rectangle)
-let text: Shape = $Shape:Text!{ text: "Hello" }
+let text: Shape = Shape:Text { text: "Hello" }
 show(text)
 ```
 
@@ -98,40 +129,36 @@ show(text)
 
 ---
 
+### Visibility Modifiers
+
+#### Examples
+
 In
 ```
-$enum Option {
-	None [],
-	Some [any],
+:: Ns {
+	private let hidden = 42
+
+	@func() {
+		<: hidden
+	}
 }
 
-let none = $Option:None![]
-let some = $Option:Some!["Hello"]
+// ns:hidden // Error
+ns:func()
 ```
 
 Out
 ```
-let none = [0]
-let some = [1, "Hello"]
-```
+:: Ns {
+	// Private variables can be renamed for minification.
+	let a = 42
 
----
-
-In
-```
-$enum Fruit {
-	Apple,
-	Banana,
+	@func() {
+		<: a
+	}
 }
 
-let fruit = $Fruit:Apple
-<: fruit $is $Fruit:Apple
-```
-
-Out
-```
-let fruit = 0
-<: fruit == 0
+Ns:func()
 ```
 
 ---
