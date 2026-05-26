@@ -1,4 +1,5 @@
-use maiscript_syntax::{CodePoint, Position};
+use maiscript_string::CodePoint;
+use maiscript_syntax::Position;
 
 #[derive(Debug)]
 /// Iterator of CodePoints with get_pos method which can be used to get current position.
@@ -30,7 +31,7 @@ impl<I> Iterator for PosStream<I> where I: Iterator<Item = CodePoint> {
 			self.pos.line += 1;
 			self.pos.column = 0;
 		} else {
-			self.pos.column += c.code_unit_count();
+			self.pos.column += c.code_unit_count() as usize;
 		}
 		Some(c)
 	}
@@ -38,14 +39,14 @@ impl<I> Iterator for PosStream<I> where I: Iterator<Item = CodePoint> {
 
 #[cfg(test)]
 mod tests {
-	use maiscript_syntax::code_point;
+	use maiscript_string::CodePoint;
 
 	use super::*;
 
-	fn from_utf16<I>(chars: impl IntoIterator<IntoIter = I>) -> PosStream<code_point::DecodeUtf16<I>> 
+	fn from_utf16<I>(chars: impl IntoIterator<IntoIter = I>) -> PosStream<maiscript_string::DecodeUtf16<I>> 
 		where I: Iterator<Item = u16>,
 	{
-		let decoder = code_point::decode_utf16(chars);
+		let decoder = CodePoint::decode_utf16(chars);
 		PosStream::new(decoder)
 	}
 

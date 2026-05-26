@@ -1,4 +1,4 @@
-use maiscript_syntax::{CodePoint, code_point};
+use maiscript_string::CodePoint;
 
 use crate::lexical::char_stream::{peekable_stream::PeekableStream, pos_stream::PosStream};
 
@@ -6,7 +6,7 @@ use crate::lexical::char_stream::{peekable_stream::PeekableStream, pos_stream::P
 pub(crate) fn create_char_stream<I>(chars: impl IntoIterator<IntoIter = I>) -> PeekableStream<impl Iterator<Item = CodePoint>>
 	where I: Iterator<Item = u16>
 {
-	let decoder = code_point::decode_utf16(chars);
+	let decoder = CodePoint::decode_utf16(chars);
 	// Iterator rejecting CodePoints of carriage return.
 	let filter = decoder.filter((|c| *c != CodePoint::from_char('\r')) as fn (&CodePoint) -> bool);
 	let pos_stream = PosStream::new(filter);

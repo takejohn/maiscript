@@ -1,4 +1,4 @@
-use maiscript_syntax::{CodePoint, EsString};
+use maiscript_string::{CodePoint, EsString};
 
 use crate::lexical::{char_stream::PeekableStream, code_points, token::TokenContent};
 

@@ -1,4 +1,4 @@
-use maiscript_syntax::CodePoint;
+use maiscript_string::CodePoint;
 
 const SPACE_CHARS: [CodePoint; 2] = [CodePoint::from_char(' '), CodePoint::from_char('\t')];
 const LINE_BREAK_CHARS: [CodePoint; 2] = [CodePoint::from_char('\r'), CodePoint::from_char('\n')];
@@ -57,17 +57,17 @@ pub(super) fn is_whitespace_char(c: CodePoint) -> bool {
 }
 
 pub(super) fn is_digit(c: CodePoint) -> bool {
-	matches!(c.code_point(), DIGIT_ZERO_U32..=DIGIT_NINE_U32)
+	matches!(c.as_u32(), DIGIT_ZERO_U32..=DIGIT_NINE_U32)
 }
 
 pub(super) fn is_identifier_start(c: CodePoint) -> bool {
-	matches!(c.code_point(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | UNDERSCORE_U32)
+	matches!(c.as_u32(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | UNDERSCORE_U32)
 }
 
 pub(super) fn is_identifier_part(c: CodePoint) -> bool {
-	matches!(c.code_point(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UNDERSCORE_U32)
+	matches!(c.as_u32(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UNDERSCORE_U32)
 }
 
 pub(super) fn is_hex_digit(c: CodePoint) -> bool {
-	matches!(c.code_point(), DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UPPER_A_U32..=UPPER_F_U32 | LOWER_A_U32..=LOWER_F_U32)
+	matches!(c.as_u32(), DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UPPER_A_U32..=UPPER_F_U32 | LOWER_A_U32..=LOWER_F_U32)
 }

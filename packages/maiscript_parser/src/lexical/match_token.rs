@@ -1,14 +1,14 @@
 use std::borrow::Cow;
 
-use maiscript_syntax::{CodePoint, EsStr};
+use maiscript_string::{CodePoint, EsStr};
 
 use crate::lexical::{char_stream::PeekableStream, code_points, match_token::{number_literal::read_number_literal, string_literal::read_string_literal}, token::TokenContent};
 
 mod number_literal;
 mod string_literal;
 
-const NUMBER_SIGN_2_ES_STR: &EsStr = EsStr::from_u16s(&['#' as u16, '#' as u16]);
-const AMPERSAND_ES_STR: &EsStr = EsStr::from_u16s(&['&' as u16]);
+const NUMBER_SIGN_2_ES_STR: &EsStr = EsStr::from_utf16(&['#' as u16, '#' as u16]);
+const AMPERSAND_ES_STR: &EsStr = EsStr::from_utf16(&['&' as u16]);
 
 /// This function assumes the input stream starts with a token.
 /// Input stream must not start with a space or comment.
@@ -95,7 +95,7 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 
 #[cfg(test)]
 mod tests {
-	use maiscript_syntax::EsString;
+	use maiscript_string::EsString;
 
 	use super::*;
 

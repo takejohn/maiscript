@@ -1,4 +1,5 @@
-use maiscript_syntax::{CodePoint, EsString, Position};
+use maiscript_string::{CodePoint, EsString};
+use maiscript_syntax::Position;
 use thiserror::Error;
 
 #[derive(Error, Debug)]

@@ -1,4 +1,4 @@
-use maiscript_syntax::{CodePoint};
+use maiscript_string::CodePoint;
 
 use crate::{error::{AiScriptSyntaxError, AiScriptSyntaxErrorSource, Result}, lexical::{char_stream::PeekableStream, code_points::*}};
 

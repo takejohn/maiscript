@@ -1,0 +1,8 @@
+[package]
+name = "maiscript_string"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+arrayvec = "0.7.6"
+ref-cast = "1.0.25"

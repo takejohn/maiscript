@@ -1,6 +1,7 @@
 use std::borrow::Cow;
 
-use maiscript_syntax::{EsStr, EsString, IdentifierName, Range};
+use maiscript_string::{EsStr, EsString};
+use maiscript_syntax::{IdentifierName, Range};
 
 #[derive(Debug, PartialEq, Eq)]
 pub(crate) enum TokenContent {

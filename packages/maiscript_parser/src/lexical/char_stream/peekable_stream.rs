@@ -1,6 +1,7 @@
 use std::collections::VecDeque;
 
-use maiscript_syntax::{CodePoint, Position};
+use maiscript_string::CodePoint;
+use maiscript_syntax::Position;
 
 use crate::lexical::char_stream::pos_stream::PosStream;
 
