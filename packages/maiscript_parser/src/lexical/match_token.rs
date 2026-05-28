@@ -2,7 +2,7 @@ use std::borrow::Cow;
 
 use maiscript_string::{CodePoint, EsStr, EsString};
 
-use crate::{lexical::{char_stream::PeekableStream, code_points, match_token::{identifier_name::try_read_identifier_name, number_literal::read_number_literal, string_literal::read_string_literal}, token::TokenContent}};
+use crate::{lexical::{char_stream::PeekableStream, code_points, match_token::{identifier_name::try_read_identifier_name, number_literal::try_read_number_literal, string_literal::read_string_literal}, token::TokenContent}};
 
 mod identifier_name;
 mod number_literal;
@@ -86,7 +86,7 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 		} },
 		Some(code_points::RIGHT_CURLY_BRACKET) => { stream.next(); TokenContent::CloseBrace },
 		Some(cp) => {
-			if let Some(digit_token) = read_number_literal(stream) {
+			if let Some(digit_token) = try_read_number_literal(stream) {
 				return digit_token;
 			};
 			if let Some(word_token) = try_read_identifier_name(stream) {

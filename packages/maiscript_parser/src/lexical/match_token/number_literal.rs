@@ -2,14 +2,14 @@ use maiscript_string::{CodePoint, EsString};
 
 use crate::lexical::{char_stream::PeekableStream, code_points, token::TokenContent};
 
-pub(super) fn read_number_literal(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> Option<TokenContent> {
+pub(super) fn try_read_number_literal(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> Option<TokenContent> {
 	let mut value = EsString::new();
 
-	read_digits(stream, &mut value)?;
+	try_read_digits(stream, &mut value)?;
 
 	if let Some(decimal_point) = stream.next_if_eq(code_points::FULL_STOP) {
 		value.push_code_point(decimal_point);
-		if read_digits(stream, &mut value).is_none() {
+		if try_read_digits(stream, &mut value).is_none() {
 			return Some(TokenContent::IncompleteNumberLiteral(value));
 		}
 	}
@@ -17,7 +17,7 @@ pub(super) fn read_number_literal(stream: &mut PeekableStream<impl Iterator<Item
 	return Some(TokenContent::NumberLiteral(value));
 }
 
-fn read_digits(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>, dst: &mut EsString) -> Option<()> {
+fn try_read_digits(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>, dst: &mut EsString) -> Option<()> {
 	let first = stream.next_if(code_points::is_digit)?;
 	dst.push_code_point(first);
 	while let Some(c) = stream.next_if(code_points::is_digit) {
@@ -46,7 +46,7 @@ mod tests {
 	fn to_token(content: &str) -> MatchResult<impl Iterator<Item = CodePoint>> {
 		let source = content.chars().map(CodePoint::from_char);
 		let mut stream = PeekableStream::new(source);
-		let token = read_number_literal(&mut stream);
+		let token = try_read_number_literal(&mut stream);
 		return MatchResult { token, stream };
 	}
 
