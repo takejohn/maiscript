@@ -15,6 +15,10 @@ impl EsString {
 		Self(vec)
 	}
 
+	pub fn from_code_points(code_points: impl IntoIterator<Item = CodePoint>) -> Self {
+		Self(code_points.into_iter().map(|cp| cp.encode_utf16()).flatten().collect())
+	}
+
 	pub fn as_es_str(&self) -> &EsStr {
 		self
 	}

@@ -15,6 +15,7 @@ dependencies = [
  "maiscript_string",
  "maiscript_syntax",
  "thiserror",
+ "unicode-id-start",
 ]
 
 [[package]]
@@ -100,6 +101,12 @@ dependencies = [
  "quote",
  "syn",
 ]
+
+[[package]]
+name = "unicode-id-start"
+version = "1.4.0"
+source = "registry+https://github.com/rust-lang/crates.io-index"
+checksum = "81b79ad29b5e19de4260020f8919b443b2ef0277d242ce532ec7b7a2cc8b6007"
 
 [[package]]
 name = "unicode-ident"

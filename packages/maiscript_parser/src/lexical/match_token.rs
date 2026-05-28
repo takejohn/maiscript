@@ -1,9 +1,10 @@
 use std::borrow::Cow;
 
-use maiscript_string::{CodePoint, EsStr};
+use maiscript_string::{CodePoint, EsStr, EsString};
 
-use crate::lexical::{char_stream::PeekableStream, code_points, match_token::{number_literal::read_number_literal, string_literal::read_string_literal}, token::TokenContent};
+use crate::{lexical::{char_stream::PeekableStream, code_points, match_token::{identifier_name::try_read_identifier_name, number_literal::read_number_literal, string_literal::read_string_literal}, token::TokenContent}};
 
+mod identifier_name;
 mod number_literal;
 mod string_literal;
 
@@ -84,11 +85,14 @@ pub(super) fn match_token(stream: &mut PeekableStream<impl Iterator<Item = CodeP
 			_ => { stream.next(); TokenContent::Or },
 		} },
 		Some(code_points::RIGHT_CURLY_BRACKET) => { stream.next(); TokenContent::CloseBrace },
-		Some(_) => {
+		Some(cp) => {
 			if let Some(digit_token) = read_number_literal(stream) {
 				return digit_token;
 			};
-			todo!()
+			if let Some(word_token) = try_read_identifier_name(stream) {
+				return word_token;
+			}
+			return TokenContent::Unknown(Cow::Owned(EsString::from_utf16(cp.encode_utf16().to_vec())));
 		},
 	}
 }
@@ -352,5 +356,10 @@ mod tests {
 	#[test]
 	fn token_incomplete_number_literal() {
 		assert_eq!(to_token("123.").matches(), TokenContent::IncompleteNumberLiteral(EsString::from("123.")));
+	}
+
+	#[test]
+	fn token_identifier_name() {
+		assert_eq!(to_token("if").matches(), TokenContent::IdentifierName(EsString::from("if")));
 	}
 }
