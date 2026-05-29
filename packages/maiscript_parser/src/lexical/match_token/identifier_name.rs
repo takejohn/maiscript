@@ -13,12 +13,16 @@ use crate::lexical::{char_stream::PeekableStream, code_points, token::TokenConte
 ///
 /// Consequently, this function allows an ECMAScript IdentifierName, which is a superset of AiScript `Identifier` and keywords.
 /// Additionally, some unicode escape sequences which are invalid in ECMAScript are allowed.
-pub(super) fn try_read_identifier_name(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> Option<TokenContent> {
+pub(super) fn try_read_identifier_name(
+    stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
+) -> Option<TokenContent> {
     let s = read_identifier_name_string(stream);
     (!s.is_empty()).then_some(TokenContent::IdentifierName(s))
 }
 
-pub(super) fn read_identifier_name_string(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> EsString {
+pub(super) fn read_identifier_name_string(
+    stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
+) -> EsString {
     let mut result = EsString::new();
     if !read_unicode_escape_sequence_or(stream, &mut result, is_id_start) {
         return result;
@@ -47,7 +51,7 @@ fn read_unicode_escape_sequence_or(
     if next.as_char().is_some_and(predicate) {
         stream.next();
         buf.push_code_point(next);
-        return true
+        return true;
     }
 
     return false;
@@ -60,7 +64,10 @@ fn read_unicode_escape_sequence(
     stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
     buf: &mut EsString,
 ) -> bool {
-    if stream.peek(1).is_none_or(|cp| cp != CodePoint::from_char('u')) {
+    if stream
+        .peek(1)
+        .is_none_or(|cp| cp != CodePoint::from_char('u'))
+    {
         return false;
     }
 
@@ -94,12 +101,18 @@ fn read_unicode_escape_sequence(
 mod tests {
     use super::*;
 
-    struct MatchIdentifierName<I> where I: Iterator<Item = CodePoint> {
+    struct MatchIdentifierName<I>
+    where
+        I: Iterator<Item = CodePoint>,
+    {
         token: Option<TokenContent>,
         stream: PeekableStream<I>,
     }
 
-    impl<I> MatchIdentifierName<I> where I: Iterator<Item = CodePoint> {
+    impl<I> MatchIdentifierName<I>
+    where
+        I: Iterator<Item = CodePoint>,
+    {
         fn matches_exact(self) -> TokenContent {
             let mut stream = self.stream;
             assert!(stream.peek(0).is_none());
@@ -121,45 +134,69 @@ mod tests {
 
     #[test]
     fn ascii_ident() {
-        assert_eq!(match_identifier_name("abc").matches_exact(), TokenContent::IdentifierName(EsString::from("abc")));
+        assert_eq!(
+            match_identifier_name("abc").matches_exact(),
+            TokenContent::IdentifierName(EsString::from("abc"))
+        );
     }
 
     #[test]
     fn keyword_if() {
-        assert_eq!(match_identifier_name("if").matches_exact(), TokenContent::IdentifierName(EsString::from("if")));
+        assert_eq!(
+            match_identifier_name("if").matches_exact(),
+            TokenContent::IdentifierName(EsString::from("if"))
+        );
     }
 
     #[test]
     fn unicode_escape_sequence_4_digits() {
-        assert_eq!(match_identifier_name(r#"\u0041"#).matches_exact(), TokenContent::IdentifierName(EsString::from(r#"\u0041"#)));
+        assert_eq!(
+            match_identifier_name(r#"\u0041"#).matches_exact(),
+            TokenContent::IdentifierName(EsString::from(r#"\u0041"#))
+        );
     }
 
     #[test]
     fn unicode_escape_sequence_incomplete_continue() {
         assert_eq!(
             match_identifier_name(r#"\u004 "#).matches(),
-            (TokenContent::IdentifierName(EsString::from(r#"\u004"#)), EsString::from(" ")),
+            (
+                TokenContent::IdentifierName(EsString::from(r#"\u004"#)),
+                EsString::from(" ")
+            ),
         );
     }
 
     #[test]
     fn unicode_escape_sequence_incomplete_eof() {
-        assert_eq!(match_identifier_name(r#"\u004"#).matches_exact(), TokenContent::IdentifierName(EsString::from(r#"\u004"#)));
+        assert_eq!(
+            match_identifier_name(r#"\u004"#).matches_exact(),
+            TokenContent::IdentifierName(EsString::from(r#"\u004"#))
+        );
     }
 
     #[test]
     fn unicode_escape_sequence_bracket() {
-        assert_eq!(match_identifier_name(r#"\u{000041}"#).matches_exact(), TokenContent::IdentifierName(EsString::from(r#"\u{000041}"#)));
+        assert_eq!(
+            match_identifier_name(r#"\u{000041}"#).matches_exact(),
+            TokenContent::IdentifierName(EsString::from(r#"\u{000041}"#))
+        );
     }
 
     #[test]
     fn unicode_escape_sequence_bracket_not_closed() {
-        assert_eq!(match_identifier_name(r#"\u{000041"#).matches_exact(), TokenContent::IdentifierName(EsString::from(r#"\u{000041"#)));
+        assert_eq!(
+            match_identifier_name(r#"\u{000041"#).matches_exact(),
+            TokenContent::IdentifierName(EsString::from(r#"\u{000041"#))
+        );
     }
 
     #[test]
     fn unicode_escape_sequence_bracket_with_space() {
-        assert_eq!(match_identifier_name(r#"\u{000041 }"#).matches_exact(), TokenContent::IdentifierName(EsString::from(r#"\u{000041 }"#)));
+        assert_eq!(
+            match_identifier_name(r#"\u{000041 }"#).matches_exact(),
+            TokenContent::IdentifierName(EsString::from(r#"\u{000041 }"#))
+        );
     }
 
     #[test]

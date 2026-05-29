@@ -45,29 +45,29 @@ pub(super) const CIRCUMFLEX_ACCENT: CodePoint = CodePoint::from_char('^');
 pub(super) const GRAVE_ACCENT: CodePoint = CodePoint::from_char('`');
 
 pub(super) fn is_space_char(c: CodePoint) -> bool {
-	SPACE_CHARS.contains(&c)
+    SPACE_CHARS.contains(&c)
 }
 
 pub(super) fn is_line_break_char(c: CodePoint) -> bool {
-	LINE_BREAK_CHARS.contains(&c)
+    LINE_BREAK_CHARS.contains(&c)
 }
 
 pub(super) fn is_whitespace_char(c: CodePoint) -> bool {
-	is_space_char(c) || is_line_break_char(c)
+    is_space_char(c) || is_line_break_char(c)
 }
 
 pub(super) fn is_digit(c: CodePoint) -> bool {
-	matches!(c.as_u32(), DIGIT_ZERO_U32..=DIGIT_NINE_U32)
+    matches!(c.as_u32(), DIGIT_ZERO_U32..=DIGIT_NINE_U32)
 }
 
 pub(super) fn is_identifier_start(c: CodePoint) -> bool {
-	matches!(c.as_u32(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | UNDERSCORE_U32)
+    matches!(c.as_u32(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | UNDERSCORE_U32)
 }
 
 pub(super) fn is_identifier_part(c: CodePoint) -> bool {
-	matches!(c.as_u32(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UNDERSCORE_U32)
+    matches!(c.as_u32(), UPPER_A_U32..=UPPER_Z_U32 | LOWER_A_U32..=LOWER_Z_U32 | DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UNDERSCORE_U32)
 }
 
 pub(super) fn is_hex_digit(c: CodePoint) -> bool {
-	matches!(c.as_u32(), DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UPPER_A_U32..=UPPER_F_U32 | LOWER_A_U32..=LOWER_F_U32)
+    matches!(c.as_u32(), DIGIT_ZERO_U32..=DIGIT_NINE_U32 | UPPER_A_U32..=UPPER_F_U32 | LOWER_A_U32..=LOWER_F_U32)
 }
