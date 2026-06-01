@@ -1,8 +1,9 @@
+use maiscript_char_stream::CharStream;
 use maiscript_string::CodePoint;
 
 use crate::{
     error::{AiScriptSyntaxError, AiScriptSyntaxErrorSource, Result},
-    lexical::{char_stream::PeekableStream, code_points::*},
+    lexical::code_points::*,
 };
 
 pub(super) trait SkipSpace {
@@ -22,13 +23,10 @@ pub(super) trait SkipSpace {
     fn skip_whitespace_and_comments(&mut self) -> Result<()>;
 }
 
-impl<I> SkipSpace for PeekableStream<I>
-where
-    I: Iterator<Item = CodePoint>,
-{
+impl SkipSpace for CharStream<'_> {
     /// Returns true if has skipped spacing and false otherwise.
     fn skip_space(&mut self) -> bool {
-        if self.peek(0).is_some_and(is_space_char) {
+        if self.char().is_some_and(is_space_char) {
             self.next();
             skip(self, is_space_char);
             true
@@ -38,10 +36,10 @@ where
     }
 
     fn skip_comment(&mut self) -> Result<bool> {
-        if self.peek(0).is_none_or(|c| c != CodePoint::from_char('/')) {
+        if self.char().is_none_or(|c| c != CodePoint::from_char('/')) {
             return Ok(false);
         }
-        let Some(next) = self.peek(1) else {
+        let Some(next) = self.char_nth(1) else {
             return Ok(false);
         };
         if next == CodePoint::from_char('*') {
@@ -65,13 +63,13 @@ where
     }
 }
 
-fn skip_line_comment(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) {
+fn skip_line_comment(stream: &mut CharStream<'_>) {
     stream.next();
     stream.next();
     skip(stream, |c| c != CodePoint::from_char('\n'));
 }
 
-fn skip_block_comment(stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>) -> Result<()> {
+fn skip_block_comment(stream: &mut CharStream<'_>) -> Result<()> {
     stream.next();
     stream.next();
     loop {
@@ -85,21 +83,16 @@ fn skip_block_comment(stream: &mut PeekableStream<impl Iterator<Item = CodePoint
     }
 }
 
-fn require_next_char(
-    stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
-) -> Result<CodePoint> {
+fn require_next_char(stream: &mut CharStream<'_>) -> Result<CodePoint> {
     let c = stream.next();
     c.ok_or_else(|| AiScriptSyntaxError {
         source: AiScriptSyntaxErrorSource::UnexpectedEOF,
-        pos: stream.get_pos().clone(),
+        pos: stream.pos().clone(),
     })
 }
 
-fn skip(
-    stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
-    mut predicate: impl FnMut(CodePoint) -> bool,
-) {
-    while stream.peek(0).is_some_and(&mut predicate) {
+fn skip(stream: &mut CharStream<'_>, mut predicate: impl FnMut(CodePoint) -> bool) {
+    while stream.char().is_some_and(&mut predicate) {
         stream.next();
     }
 }
@@ -109,106 +102,84 @@ mod tests {
     use super::*;
 
     mod skip_spacing {
+        use maiscript_string::EsString;
+
         use super::*;
 
         #[test]
         fn empty() {
-            let source = Vec::<CodePoint>::new();
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::new();
+            let mut stream = CharStream::new(&source);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, false);
-            assert_eq!(stream.peek(0), None);
+            assert_eq!(stream.char(), None);
         }
 
         #[test]
         fn only_space() {
-            let source = vec![CodePoint::from_char(' ')];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from(" ");
+            let mut stream = CharStream::new(&source);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, true);
-            assert_eq!(stream.peek(0), None);
+            assert_eq!(stream.char(), None);
         }
 
         #[test]
         fn no_leading_spaces() {
-            let soruce = vec![CodePoint::from_char('a')];
-            let mut stream = PeekableStream::new(soruce);
+            let soruce = EsString::from("a");
+            let mut stream = CharStream::new(&soruce);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, false);
-            assert_eq!(stream.peek(0), Some(CodePoint::from_char('a')));
+            assert_eq!(stream.char(), Some(CodePoint::from_char('a')));
         }
 
         #[test]
         fn leading_spaces() {
-            let soruce = vec![
-                CodePoint::from_char(' '),
-                CodePoint::from_char(' '),
-                CodePoint::from_char('a'),
-            ];
-            let mut stream = PeekableStream::new(soruce);
+            let soruce = EsString::from("  a");
+            let mut stream = CharStream::new(&soruce);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, true);
-            assert_eq!(stream.peek(0), Some(CodePoint::from_char('a')));
+            assert_eq!(stream.char(), Some(CodePoint::from_char('a')));
         }
     }
 
     mod skip_whitespace_and_comments {
+        use maiscript_string::EsString;
         use maiscript_syntax::Position;
 
         use super::*;
 
         #[test]
         fn new_lines() {
-            let source = vec![
-                CodePoint::from_char('\n'),
-                CodePoint::from_char('\n'),
-                CodePoint::from_char('a'),
-            ];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from("\n\na");
+            let mut stream = CharStream::new(&source);
             let result = stream.skip_whitespace_and_comments();
             result.expect("should have been ok");
-            assert_eq!(stream.peek(0), Some(CodePoint::from_char('a')));
+            assert_eq!(stream.char(), Some(CodePoint::from_char('a')));
         }
 
         #[test]
         fn line_comment() {
-            let source = vec![
-                CodePoint::from_char('/'),
-                CodePoint::from_char('/'),
-                CodePoint::from_char('a'),
-                CodePoint::from_char('\n'),
-                CodePoint::from_char('b'),
-            ];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from("//a\nb");
+            let mut stream = CharStream::new(&source);
             let result = stream.skip_whitespace_and_comments();
             result.expect("should have been ok");
-            assert_eq!(stream.peek(0), Some(CodePoint::from_char('b')));
+            assert_eq!(stream.char(), Some(CodePoint::from_char('b')));
         }
 
         #[test]
         fn closed_block_comment() {
-            let source = vec![
-                CodePoint::from_char('/'),
-                CodePoint::from_char('*'),
-                CodePoint::from_char('a'),
-                CodePoint::from_char('*'),
-                CodePoint::from_char('/'),
-                CodePoint::from_char('b'),
-            ];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from("/*a*/b");
+            let mut stream = CharStream::new(&source);
             let result = stream.skip_whitespace_and_comments();
             assert!(result.is_ok());
-            assert_eq!(stream.peek(0), Some(CodePoint::from_char('b')));
+            assert_eq!(stream.char(), Some(CodePoint::from_char('b')));
         }
 
         #[test]
         fn error_with_opened_block_comment() {
-            let source = vec![
-                CodePoint::from_char('/'),
-                CodePoint::from_char('*'),
-                CodePoint::from_char('a'),
-            ];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from("/*a");
+            let mut stream = CharStream::new(&source);
             let result = stream.skip_whitespace_and_comments();
             assert!(
                 result.is_err_and(|e| matches!(e.source, AiScriptSyntaxErrorSource::UnexpectedEOF))
@@ -217,13 +188,8 @@ mod tests {
 
         #[test]
         fn error_with_opened_block_comment_asterisk() {
-            let source = vec![
-                CodePoint::from_char('/'),
-                CodePoint::from_char('*'),
-                CodePoint::from_char('a'),
-                CodePoint::from_char('*'),
-            ];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from("/*a*");
+            let mut stream = CharStream::new(&source);
             let result = stream.skip_whitespace_and_comments();
             assert!(result.is_err_and(|e| {
                 matches!(e.source, AiScriptSyntaxErrorSource::UnexpectedEOF)
@@ -233,23 +199,11 @@ mod tests {
 
         #[test]
         fn multiple_comments() {
-            let source = vec![
-                CodePoint::from_char('/'),
-                CodePoint::from_char('*'),
-                CodePoint::from_char('a'),
-                CodePoint::from_char('*'),
-                CodePoint::from_char('/'),
-                CodePoint::from_char('\n'),
-                CodePoint::from_char('/'),
-                CodePoint::from_char('/'),
-                CodePoint::from_char('b'),
-                CodePoint::from_char('\n'),
-                CodePoint::from_char('c'),
-            ];
-            let mut stream = PeekableStream::new(source);
+            let source = EsString::from("/*a*/\n//b\nc");
+            let mut stream = CharStream::new(&source);
             let result = stream.skip_whitespace_and_comments();
             assert!(result.is_ok());
-            assert_eq!(stream.peek(0), Some(CodePoint::from_char('c')));
+            assert_eq!(stream.char(), Some(CodePoint::from_char('c')));
         }
     }
 }

@@ -89,6 +89,12 @@ impl Borrow<EsStr> for EsString {
     }
 }
 
+impl FromIterator<u16> for EsString {
+    fn from_iter<T: IntoIterator<Item = u16>>(iter: T) -> Self {
+        Self(iter.into_iter().collect())
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;

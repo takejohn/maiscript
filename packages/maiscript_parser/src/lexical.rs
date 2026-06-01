@@ -1,4 +1,3 @@
-mod char_stream;
 mod code_points;
 mod lexer;
 mod match_token;

@@ -9,9 +9,18 @@ source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "7c02d123df017efcdfbd739ef81735b36c5ba83ec3c59c80a9d7ecc718f92e50"
 
 [[package]]
+name = "maiscript_char_stream"
+version = "0.1.0"
+dependencies = [
+ "maiscript_string",
+ "maiscript_syntax",
+]
+
+[[package]]
 name = "maiscript_parser"
 version = "0.1.0"
 dependencies = [
+ "maiscript_char_stream",
  "maiscript_string",
  "maiscript_syntax",
  "thiserror",

@@ -1,10 +1,9 @@
-use maiscript_string::{CodePoint, EsString};
+use maiscript_char_stream::CharStream;
+use maiscript_string::EsString;
 
-use crate::lexical::{char_stream::PeekableStream, code_points, token::TokenContent};
+use crate::lexical::{code_points, token::TokenContent};
 
-pub(super) fn try_read_number_literal(
-    stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
-) -> Option<TokenContent> {
+pub(super) fn try_read_number_literal(stream: &mut CharStream<'_>) -> Option<TokenContent> {
     let mut value = EsString::new();
 
     try_read_digits(stream, &mut value)?;
@@ -19,10 +18,7 @@ pub(super) fn try_read_number_literal(
     return Some(TokenContent::NumberLiteral(value));
 }
 
-fn try_read_digits(
-    stream: &mut PeekableStream<impl Iterator<Item = CodePoint>>,
-    dst: &mut EsString,
-) -> Option<()> {
+fn try_read_digits(stream: &mut CharStream<'_>, dst: &mut EsString) -> Option<()> {
     let first = stream.next_if(code_points::is_digit)?;
     dst.push_code_point(first);
     while let Some(c) = stream.next_if(code_points::is_digit) {
@@ -33,30 +29,25 @@ fn try_read_digits(
 
 #[cfg(test)]
 mod tests {
+    use maiscript_char_stream::CharStream;
+    use maiscript_string::EsStr;
+
     use super::*;
 
-    struct MatchResult<I>
-    where
-        I: Iterator<Item = CodePoint>,
-    {
+    struct MatchResult<'a> {
         token: Option<TokenContent>,
-        stream: PeekableStream<I>,
+        stream: CharStream<'a>,
     }
 
-    impl<I> MatchResult<I>
-    where
-        I: Iterator<Item = CodePoint>,
-    {
+    impl MatchResult<'_> {
         fn matches(self) -> TokenContent {
-            let mut stream = self.stream;
-            assert!(stream.peek(0).is_none());
+            assert!(self.stream.char().is_none());
             self.token.unwrap()
         }
     }
 
-    fn to_token(content: &str) -> MatchResult<impl Iterator<Item = CodePoint>> {
-        let source = content.chars().map(CodePoint::from_char);
-        let mut stream = PeekableStream::new(source);
+    fn to_token(source: &EsStr) -> MatchResult<'_> {
+        let mut stream = CharStream::new(&source);
         let token = try_read_number_literal(&mut stream);
         return MatchResult { token, stream };
     }
@@ -64,7 +55,7 @@ mod tests {
     #[test]
     fn integer() {
         assert_eq!(
-            to_token("123").matches(),
+            to_token(&EsString::from("123")).matches(),
             TokenContent::NumberLiteral(EsString::from("123"))
         );
     }
@@ -72,7 +63,7 @@ mod tests {
     #[test]
     fn fraction() {
         assert_eq!(
-            to_token("0.456").matches(),
+            to_token(&EsString::from("0.456")).matches(),
             TokenContent::NumberLiteral(EsString::from("0.456"))
         );
     }
@@ -80,15 +71,16 @@ mod tests {
     #[test]
     fn lacking_fraction_part() {
         assert_eq!(
-            to_token("123.").matches(),
+            to_token(&EsString::from("123.")).matches(),
             TokenContent::IncompleteNumberLiteral(EsString::from("123."))
         );
     }
 
     #[test]
     fn lacking_integer_part() {
-        let MatchResult { token, mut stream } = to_token(".123");
+        let source = EsString::from(".123");
+        let MatchResult { token, stream } = to_token(&source);
         assert_eq!(token, None);
-        assert_eq!(stream.peek(0), Some(code_points::FULL_STOP));
+        assert_eq!(stream.char(), Some(code_points::FULL_STOP));
     }
 }
