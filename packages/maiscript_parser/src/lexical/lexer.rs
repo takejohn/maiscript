@@ -43,14 +43,14 @@ impl<'a> Lexer<'a> {
 
 #[cfg(test)]
 mod tests {
-    use maiscript_string::EsString;
+    use boa_string_literal::js_str;
 
     use super::*;
 
     #[test]
     fn new_line_token_never_read_consecutively() {
-        let source = EsString::from("\n\n");
-        let stream = CharStream::new(&source);
+        let source = js_str!("\n\n");
+        let stream = CharStream::new(source);
         let mut lexer = Lexer::new(stream);
         assert_eq!(
             lexer.read_default_mode().unwrap().content,

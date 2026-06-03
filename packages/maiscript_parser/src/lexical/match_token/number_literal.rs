@@ -1,24 +1,27 @@
+use boa_string::CommonJsStringBuilder;
 use maiscript_char_stream::CharStream;
-use maiscript_string::EsString;
 
-use crate::lexical::{code_points, token::TokenContent};
+use crate::{
+    lexical::{code_points, token::TokenContent},
+    utils::PushCodePoint,
+};
 
 pub(super) fn try_read_number_literal(stream: &mut CharStream<'_>) -> Option<TokenContent> {
-    let mut value = EsString::new();
+    let mut builder = CommonJsStringBuilder::new();
 
-    try_read_digits(stream, &mut value)?;
+    try_read_digits(stream, &mut builder)?;
 
     if let Some(decimal_point) = stream.next_if_eq(code_points::FULL_STOP) {
-        value.push_code_point(decimal_point);
-        if try_read_digits(stream, &mut value).is_none() {
-            return Some(TokenContent::IncompleteNumberLiteral(value));
+        builder.push_code_point(decimal_point);
+        if try_read_digits(stream, &mut builder).is_none() {
+            return Some(TokenContent::IncompleteNumberLiteral(builder.build()));
         }
     }
 
-    return Some(TokenContent::NumberLiteral(value));
+    return Some(TokenContent::NumberLiteral(builder.build()));
 }
 
-fn try_read_digits(stream: &mut CharStream<'_>, dst: &mut EsString) -> Option<()> {
+fn try_read_digits(stream: &mut CharStream<'_>, dst: &mut CommonJsStringBuilder) -> Option<()> {
     let first = stream.next_if(code_points::is_digit)?;
     dst.push_code_point(first);
     while let Some(c) = stream.next_if(code_points::is_digit) {
@@ -29,8 +32,9 @@ fn try_read_digits(stream: &mut CharStream<'_>, dst: &mut EsString) -> Option<()
 
 #[cfg(test)]
 mod tests {
+    use boa_string::JsStr;
+    use boa_string_literal::js_str;
     use maiscript_char_stream::CharStream;
-    use maiscript_string::EsStr;
 
     use super::*;
 
@@ -46,8 +50,8 @@ mod tests {
         }
     }
 
-    fn to_token(source: &EsStr) -> MatchResult<'_> {
-        let mut stream = CharStream::new(&source);
+    fn to_token(source: JsStr<'_>) -> MatchResult<'_> {
+        let mut stream = CharStream::new(source);
         let token = try_read_number_literal(&mut stream);
         return MatchResult { token, stream };
     }
@@ -55,31 +59,31 @@ mod tests {
     #[test]
     fn integer() {
         assert_eq!(
-            to_token(&EsString::from("123")).matches(),
-            TokenContent::NumberLiteral(EsString::from("123"))
+            to_token(js_str!("123")).matches(),
+            TokenContent::NumberLiteral(js_str!("123").into())
         );
     }
 
     #[test]
     fn fraction() {
         assert_eq!(
-            to_token(&EsString::from("0.456")).matches(),
-            TokenContent::NumberLiteral(EsString::from("0.456"))
+            to_token(js_str!("0.456")).matches(),
+            TokenContent::NumberLiteral(js_str!("0.456").into())
         );
     }
 
     #[test]
     fn lacking_fraction_part() {
         assert_eq!(
-            to_token(&EsString::from("123.")).matches(),
-            TokenContent::IncompleteNumberLiteral(EsString::from("123."))
+            to_token(js_str!("123.")).matches(),
+            TokenContent::IncompleteNumberLiteral(js_str!("123.").into())
         );
     }
 
     #[test]
     fn lacking_integer_part() {
-        let source = EsString::from(".123");
-        let MatchResult { token, stream } = to_token(&source);
+        let source = js_str!(".123");
+        let MatchResult { token, stream } = to_token(source);
         assert_eq!(token, None);
         assert_eq!(stream.char(), Some(code_points::FULL_STOP));
     }

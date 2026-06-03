@@ -1,4 +1,4 @@
-use maiscript_string::{CodePoint, EsString};
+use boa_string::{CodePoint, JsString};
 use maiscript_syntax::Position;
 use thiserror::Error;
 
@@ -13,8 +13,8 @@ pub struct AiScriptSyntaxError {
 pub enum AiScriptSyntaxErrorSource {
     #[error("unexpected EOF")]
     UnexpectedEOF,
-    #[error("invalid sequence of characters: \"{0}\"")]
-    InvalidCharacterSequence(EsString),
+    #[error("invalid sequence of characters: \"{0:?}\"")]
+    InvalidCharacterSequence(JsString),
     #[error("invalid character: \"{0}\"")]
     InvalidCharacter(CodePoint),
 }

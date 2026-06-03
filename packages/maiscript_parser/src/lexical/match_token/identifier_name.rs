@@ -1,8 +1,11 @@
+use boa_string::{CodePoint, CommonJsStringBuilder, JsString};
 use maiscript_char_stream::CharStream;
-use maiscript_string::{CodePoint, EsString};
 use unicode_id_start::{is_id_continue, is_id_start};
 
-use crate::lexical::{code_points, token::TokenContent};
+use crate::{
+    lexical::{code_points, token::TokenContent},
+    utils::PushCodePoint,
+};
 
 /// Reads an `IdentifierName`.
 ///
@@ -19,14 +22,14 @@ pub(super) fn try_read_identifier_name(stream: &mut CharStream<'_>) -> Option<To
     (!s.is_empty()).then_some(TokenContent::IdentifierName(s))
 }
 
-pub(super) fn read_identifier_name_string(stream: &mut CharStream<'_>) -> EsString {
-    let mut result = EsString::new();
-    if !read_unicode_escape_sequence_or(stream, &mut result, is_id_start) {
-        return result;
+pub(super) fn read_identifier_name_string(stream: &mut CharStream<'_>) -> JsString {
+    let mut builder = CommonJsStringBuilder::new();
+    if !read_unicode_escape_sequence_or(stream, &mut builder, is_id_start) {
+        return builder.build();
     }
     loop {
-        if !read_unicode_escape_sequence_or(stream, &mut result, is_id_continue) {
-            return result;
+        if !read_unicode_escape_sequence_or(stream, &mut builder, is_id_continue) {
+            return builder.build();
         }
     }
 }
@@ -34,7 +37,7 @@ pub(super) fn read_identifier_name_string(stream: &mut CharStream<'_>) -> EsStri
 /// Returns true if it is able to read the rest part of `IdentifierName`, otherwise false.
 fn read_unicode_escape_sequence_or(
     stream: &mut CharStream<'_>,
-    buf: &mut EsString,
+    buf: &mut CommonJsStringBuilder,
     predicate: impl FnOnce(char) -> bool,
 ) -> bool {
     let Some(next) = stream.char() else {
@@ -57,10 +60,13 @@ fn read_unicode_escape_sequence_or(
 /// Reads a unicode escape sequence.
 /// Assumes that the stream to start with a reverse solidus.
 /// Returns true if it is able to read the rest part of `IdentifierName`, otherwise false.
-fn read_unicode_escape_sequence(stream: &mut CharStream<'_>, buf: &mut EsString) -> bool {
+fn read_unicode_escape_sequence(
+    stream: &mut CharStream<'_>,
+    buf: &mut CommonJsStringBuilder,
+) -> bool {
     if stream
         .char_nth(1)
-        .is_none_or(|cp| cp != CodePoint::from_char('u'))
+        .is_none_or(|cp| cp != CodePoint::Unicode('u'))
     {
         return false;
     }
@@ -68,7 +74,7 @@ fn read_unicode_escape_sequence(stream: &mut CharStream<'_>, buf: &mut EsString)
     stream.next();
     buf.push_code_point(code_points::REVERSE_SOLIDUS);
     stream.next();
-    buf.push_code_point(CodePoint::from_char('u'));
+    buf.push_code_point(CodePoint::Unicode('u'));
 
     if stream.next_if_eq(code_points::LEFT_CURLY_BRACKET).is_some() {
         buf.push_code_point(code_points::LEFT_CURLY_BRACKET);
@@ -93,7 +99,8 @@ fn read_unicode_escape_sequence(stream: &mut CharStream<'_>, buf: &mut EsString)
 
 #[cfg(test)]
 mod tests {
-    use maiscript_string::EsStr;
+    use boa_string::{JsStr, JsString};
+    use boa_string_literal::js_str;
 
     use super::*;
 
@@ -102,20 +109,19 @@ mod tests {
         stream: CharStream<'a>,
     }
 
-    impl MatchIdentifierName<'_> {
+    impl<'a> MatchIdentifierName<'a> {
         fn matches_exact(self) -> TokenContent {
             assert!(self.stream.char().is_none());
             self.token.unwrap()
         }
 
-        fn matches(self) -> (TokenContent, EsString) {
+        fn matches(self) -> (TokenContent, CharStream<'a>) {
             let token = self.token.unwrap();
-            let rest = EsString::from_code_points(self.stream);
-            (token, rest)
+            (token, self.stream)
         }
     }
 
-    fn match_identifier_name(s: &EsStr) -> MatchIdentifierName<'_> {
+    fn match_identifier_name(s: JsStr) -> MatchIdentifierName<'_> {
         let mut stream = CharStream::new(s);
         let token = try_read_identifier_name(&mut stream);
         return MatchIdentifierName { token, stream };
@@ -124,75 +130,72 @@ mod tests {
     #[test]
     fn ascii_ident() {
         assert_eq!(
-            match_identifier_name(&EsString::from("abc")).matches_exact(),
-            TokenContent::IdentifierName(EsString::from("abc"))
+            match_identifier_name(js_str!("abc")).matches_exact(),
+            TokenContent::IdentifierName(js_str!("abc").into())
         );
     }
 
     #[test]
     fn keyword_if() {
         assert_eq!(
-            match_identifier_name(&EsString::from("if")).matches_exact(),
-            TokenContent::IdentifierName(EsString::from("if"))
+            match_identifier_name(js_str!("if")).matches_exact(),
+            TokenContent::IdentifierName(js_str!("if").into())
         );
     }
 
     #[test]
     fn unicode_escape_sequence_4_digits() {
         assert_eq!(
-            match_identifier_name(&EsString::from(r#"\u0041"#)).matches_exact(),
-            TokenContent::IdentifierName(EsString::from(r#"\u0041"#))
+            match_identifier_name(js_str!(r#"\u0041"#)).matches_exact(),
+            TokenContent::IdentifierName(js_str!(r#"\u0041"#).into())
         );
     }
 
     #[test]
     fn unicode_escape_sequence_incomplete_continue() {
+        let (token, mut stream) = match_identifier_name(js_str!(r#"\u004 "#)).matches();
         assert_eq!(
-            match_identifier_name(&EsString::from(r#"\u004 "#)).matches(),
-            (
-                TokenContent::IdentifierName(EsString::from(r#"\u004"#)),
-                EsString::from(" ")
-            ),
+            token,
+            TokenContent::IdentifierName(js_str!(r#"\u004"#).into())
         );
+        assert_eq!(stream.next(), Some(CodePoint::Unicode(' ')));
+        assert_eq!(stream.next(), None)
     }
 
     #[test]
     fn unicode_escape_sequence_incomplete_eof() {
         assert_eq!(
-            match_identifier_name(&EsString::from(r#"\u004"#)).matches_exact(),
-            TokenContent::IdentifierName(EsString::from(r#"\u004"#))
+            match_identifier_name(js_str!(r#"\u004"#)).matches_exact(),
+            TokenContent::IdentifierName(js_str!(r#"\u004"#).into())
         );
     }
 
     #[test]
     fn unicode_escape_sequence_bracket() {
         assert_eq!(
-            match_identifier_name(&EsString::from(r#"\u{000041}"#)).matches_exact(),
-            TokenContent::IdentifierName(EsString::from(r#"\u{000041}"#))
+            match_identifier_name(js_str!(r#"\u{000041}"#)).matches_exact(),
+            TokenContent::IdentifierName(js_str!(r#"\u{000041}"#).into())
         );
     }
 
     #[test]
     fn unicode_escape_sequence_bracket_not_closed() {
         assert_eq!(
-            match_identifier_name(&EsString::from(r#"\u{000041"#)).matches_exact(),
-            TokenContent::IdentifierName(EsString::from(r#"\u{000041"#))
+            match_identifier_name(js_str!(r#"\u{000041"#)).matches_exact(),
+            TokenContent::IdentifierName(js_str!(r#"\u{000041"#).into())
         );
     }
 
     #[test]
     fn unicode_escape_sequence_bracket_with_space() {
         assert_eq!(
-            match_identifier_name(&EsString::from(r#"\u{000041 }"#)).matches_exact(),
-            TokenContent::IdentifierName(EsString::from(r#"\u{000041 }"#))
+            match_identifier_name(js_str!(r#"\u{000041 }"#)).matches_exact(),
+            TokenContent::IdentifierName(js_str!(r#"\u{000041 }"#).into())
         );
     }
 
     #[test]
     fn invalid_sequence() {
-        assert_eq!(
-            match_identifier_name(&EsString::from(r#"\x41"#)).token,
-            None
-        );
+        assert_eq!(match_identifier_name(js_str!(r#"\x41"#)).token, None);
     }
 }

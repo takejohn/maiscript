@@ -1,7 +1,6 @@
-use std::borrow::Cow;
-
+use boa_string::CodePoint;
+use boa_string_literal::js_str;
 use maiscript_char_stream::CharStream;
-use maiscript_string::{CodePoint, EsStr, EsString};
 
 use crate::lexical::{
     code_points,
@@ -15,9 +14,6 @@ use crate::lexical::{
 mod identifier_name;
 mod number_literal;
 mod string_literal;
-
-const NUMBER_SIGN_2_ES_STR: &EsStr = EsStr::from_utf16(&['#' as u16, '#' as u16]);
-const AMPERSAND_ES_STR: &EsStr = EsStr::from_utf16(&['&' as u16]);
 
 /// This function assumes the input stream starts with a token.
 /// Input stream must not start with a space or comment.
@@ -59,7 +55,7 @@ pub(super) fn match_token(stream: &mut CharStream<'_>) -> TokenContent {
                         }
                         _ => {
                             stream.next();
-                            TokenContent::Unknown(Cow::Borrowed(NUMBER_SIGN_2_ES_STR))
+                            TokenContent::Unknown(js_str!("##").into())
                         }
                     }
                 }
@@ -86,7 +82,7 @@ pub(super) fn match_token(stream: &mut CharStream<'_>) -> TokenContent {
                 }
                 _ => {
                     stream.next();
-                    TokenContent::Unknown(Cow::Borrowed(AMPERSAND_ES_STR))
+                    TokenContent::Unknown(js_str!("&").into())
                 }
             }
         }
@@ -217,7 +213,7 @@ pub(super) fn match_token(stream: &mut CharStream<'_>) -> TokenContent {
             TokenContent::OpenBracket
         }
         Some(code_points::REVERSE_SOLIDUS) => {
-            if stream.char_nth(1) == Some(CodePoint::from_char('u')) {
+            if stream.char_nth(1) == Some(CodePoint::Unicode('u')) {
                 todo!()
             } else {
                 stream.next();
@@ -260,16 +256,16 @@ pub(super) fn match_token(stream: &mut CharStream<'_>) -> TokenContent {
             if let Some(word_token) = try_read_identifier_name(stream) {
                 return word_token;
             }
-            return TokenContent::Unknown(Cow::Owned(EsString::from_utf16(
-                cp.encode_utf16().to_vec(),
-            )));
+            let mut buf = [0u16; 2];
+            let buf = &*cp.encode_utf16(&mut buf);
+            return TokenContent::Unknown(buf.into());
         }
     }
 }
 
 #[cfg(test)]
 mod tests {
-    use maiscript_string::EsString;
+    use boa_string::{JsStr, JsString};
 
     use super::*;
 
@@ -285,354 +281,276 @@ mod tests {
         }
     }
 
-    fn to_token(source: &EsStr) -> MatchResult<'_> {
-        let mut stream = CharStream::new(&source);
+    fn to_token(source: JsStr) -> MatchResult<'_> {
+        let mut stream = CharStream::new(source);
         let token = match_token(&mut stream);
         return MatchResult { token, stream };
     }
 
     #[test]
     fn token_eof() {
-        assert_eq!(to_token(&EsString::from("")).matches(), TokenContent::EOF);
+        assert_eq!(to_token(js_str!("")).matches(), TokenContent::EOF);
     }
 
     #[test]
     fn token_new_line() {
-        assert_eq!(
-            to_token(&EsString::from("\n")).matches(),
-            TokenContent::NewLine
-        );
+        assert_eq!(to_token(js_str!("\n")).matches(), TokenContent::NewLine);
     }
 
     #[test]
     fn token_not() {
-        assert_eq!(to_token(&EsString::from("!")).matches(), TokenContent::Not);
+        assert_eq!(to_token(js_str!("!")).matches(), TokenContent::Not);
     }
 
     #[test]
     fn token_not_eq() {
-        assert_eq!(
-            to_token(&EsString::from("!=")).matches(),
-            TokenContent::NotEq
-        );
+        assert_eq!(to_token(js_str!("!=")).matches(), TokenContent::NotEq);
     }
 
     #[test]
     fn double_quote_string_literal() {
         assert_eq!(
-            to_token(&EsString::from(r#""abc""#)).matches(),
-            TokenContent::StringLiteral(EsString::from("abc"))
+            to_token(js_str!(r#""abc""#)).matches(),
+            TokenContent::StringLiteral(JsString::from("abc"))
         );
     }
 
     #[test]
     fn single_quote_string_literal() {
         assert_eq!(
-            to_token(&EsString::from("'abc'")).matches(),
-            TokenContent::StringLiteral(EsString::from("abc"))
+            to_token(js_str!("'abc'")).matches(),
+            TokenContent::StringLiteral(JsString::from("abc"))
         );
     }
 
     #[test]
     fn incomplete_string_literal() {
         assert_eq!(
-            to_token(&EsString::from("\"")).matches(),
+            to_token(js_str!("\"")).matches(),
             TokenContent::IncompleteStringLiteral
         );
     }
 
     #[test]
     fn token_sharp() {
-        assert_eq!(
-            to_token(&EsString::from("#")).matches(),
-            TokenContent::Sharp
-        );
+        assert_eq!(to_token(js_str!("#")).matches(), TokenContent::Sharp);
     }
 
     #[test]
     fn token_open_sharp_bracket() {
         assert_eq!(
-            to_token(&EsString::from("#[")).matches(),
+            to_token(js_str!("#[")).matches(),
             TokenContent::OpenSharpBracket
         );
     }
 
     #[test]
     fn token_sharp3() {
-        assert_eq!(
-            to_token(&EsString::from("###")).matches(),
-            TokenContent::Sharp3
-        );
+        assert_eq!(to_token(js_str!("###")).matches(), TokenContent::Sharp3);
     }
 
     #[test]
     fn unknown_sharp2() {
         assert_eq!(
-            to_token(&EsString::from("##")).matches(),
-            TokenContent::Unknown(Cow::Borrowed(NUMBER_SIGN_2_ES_STR))
+            to_token(js_str!("##")).matches(),
+            TokenContent::Unknown(js_str!("##").into())
         );
     }
 
     #[test]
     fn token_percent() {
-        assert_eq!(
-            to_token(&EsString::from("%")).matches(),
-            TokenContent::Percent
-        );
+        assert_eq!(to_token(js_str!("%")).matches(), TokenContent::Percent);
     }
 
     #[test]
     fn token_and2() {
-        assert_eq!(
-            to_token(&EsString::from("&&")).matches(),
-            TokenContent::And2
-        );
+        assert_eq!(to_token(js_str!("&&")).matches(), TokenContent::And2);
     }
 
     #[test]
     fn unknown_and() {
         assert_eq!(
-            to_token(&EsString::from("&")).matches(),
-            TokenContent::Unknown(Cow::Borrowed(AMPERSAND_ES_STR))
+            to_token(js_str!("&")).matches(),
+            TokenContent::Unknown(js_str!("&").into()),
         );
     }
 
     #[test]
     fn token_open_paren() {
-        assert_eq!(
-            to_token(&EsString::from("(")).matches(),
-            TokenContent::OpenParen
-        );
+        assert_eq!(to_token(js_str!("(")).matches(), TokenContent::OpenParen);
     }
 
     #[test]
     fn token_close_paren() {
-        assert_eq!(
-            to_token(&EsString::from(")")).matches(),
-            TokenContent::CloseParen
-        );
+        assert_eq!(to_token(js_str!(")")).matches(), TokenContent::CloseParen);
     }
 
     #[test]
     fn token_asterisk() {
-        assert_eq!(
-            to_token(&EsString::from("*")).matches(),
-            TokenContent::Asterisk
-        );
+        assert_eq!(to_token(js_str!("*")).matches(), TokenContent::Asterisk);
     }
 
     #[test]
     fn token_plus() {
-        assert_eq!(to_token(&EsString::from("+")).matches(), TokenContent::Plus);
+        assert_eq!(to_token(js_str!("+")).matches(), TokenContent::Plus);
     }
 
     #[test]
     fn token_plus_eq() {
-        assert_eq!(
-            to_token(&EsString::from("+=")).matches(),
-            TokenContent::PlusEq
-        );
+        assert_eq!(to_token(js_str!("+=")).matches(), TokenContent::PlusEq);
     }
 
     #[test]
     fn token_comma() {
-        assert_eq!(
-            to_token(&EsString::from(",")).matches(),
-            TokenContent::Comma
-        );
+        assert_eq!(to_token(js_str!(",")).matches(), TokenContent::Comma);
     }
 
     #[test]
     fn token_minus() {
-        assert_eq!(
-            to_token(&EsString::from("-")).matches(),
-            TokenContent::Minus
-        );
+        assert_eq!(to_token(js_str!("-")).matches(), TokenContent::Minus);
     }
 
     #[test]
     fn token_minus_eq() {
-        assert_eq!(
-            to_token(&EsString::from("-=")).matches(),
-            TokenContent::MinusEq
-        );
+        assert_eq!(to_token(js_str!("-=")).matches(), TokenContent::MinusEq);
     }
 
     #[test]
     fn token_dot() {
-        assert_eq!(to_token(&EsString::from(".")).matches(), TokenContent::Dot);
+        assert_eq!(to_token(js_str!(".")).matches(), TokenContent::Dot);
     }
 
     #[test]
     fn token_slash() {
-        assert_eq!(
-            to_token(&EsString::from("/")).matches(),
-            TokenContent::Slash
-        );
+        assert_eq!(to_token(js_str!("/")).matches(), TokenContent::Slash);
     }
 
     #[test]
     fn token_colon() {
-        assert_eq!(
-            to_token(&EsString::from(":")).matches(),
-            TokenContent::Colon
-        );
+        assert_eq!(to_token(js_str!(":")).matches(), TokenContent::Colon);
     }
 
     #[test]
     fn token_colon2() {
-        assert_eq!(
-            to_token(&EsString::from("::")).matches(),
-            TokenContent::Colon2
-        );
+        assert_eq!(to_token(js_str!("::")).matches(), TokenContent::Colon2);
     }
 
     #[test]
     fn token_semi_colon() {
-        assert_eq!(
-            to_token(&EsString::from(";")).matches(),
-            TokenContent::SemiColon
-        );
+        assert_eq!(to_token(js_str!(";")).matches(), TokenContent::SemiColon);
     }
 
     #[test]
     fn token_lt() {
-        assert_eq!(to_token(&EsString::from("<")).matches(), TokenContent::Lt);
+        assert_eq!(to_token(js_str!("<")).matches(), TokenContent::Lt);
     }
 
     #[test]
     fn token_lt_eq() {
-        assert_eq!(
-            to_token(&EsString::from("<=")).matches(),
-            TokenContent::LtEq
-        );
+        assert_eq!(to_token(js_str!("<=")).matches(), TokenContent::LtEq);
     }
 
     #[test]
     fn token_out() {
-        assert_eq!(to_token(&EsString::from("<:")).matches(), TokenContent::Out);
+        assert_eq!(to_token(js_str!("<:")).matches(), TokenContent::Out);
     }
 
     #[test]
     fn token_eq() {
-        assert_eq!(to_token(&EsString::from("=")).matches(), TokenContent::Eq);
+        assert_eq!(to_token(js_str!("=")).matches(), TokenContent::Eq);
     }
 
     #[test]
     fn token_eq2() {
-        assert_eq!(to_token(&EsString::from("==")).matches(), TokenContent::Eq2);
+        assert_eq!(to_token(js_str!("==")).matches(), TokenContent::Eq2);
     }
 
     #[test]
     fn token_arrow() {
-        assert_eq!(
-            to_token(&EsString::from("=>")).matches(),
-            TokenContent::Arrow
-        );
+        assert_eq!(to_token(js_str!("=>")).matches(), TokenContent::Arrow);
     }
 
     #[test]
     fn token_gt() {
-        assert_eq!(to_token(&EsString::from(">")).matches(), TokenContent::Gt);
+        assert_eq!(to_token(js_str!(">")).matches(), TokenContent::Gt);
     }
 
     #[test]
     fn token_gt_eq() {
-        assert_eq!(
-            to_token(&EsString::from(">=")).matches(),
-            TokenContent::GtEq
-        );
+        assert_eq!(to_token(js_str!(">=")).matches(), TokenContent::GtEq);
     }
 
     #[test]
     fn token_question() {
-        assert_eq!(
-            to_token(&EsString::from("?")).matches(),
-            TokenContent::Question
-        );
+        assert_eq!(to_token(js_str!("?")).matches(), TokenContent::Question);
     }
 
     #[test]
     fn token_at() {
-        assert_eq!(to_token(&EsString::from("@")).matches(), TokenContent::At);
+        assert_eq!(to_token(js_str!("@")).matches(), TokenContent::At);
     }
 
     #[test]
     fn token_open_bracket() {
-        assert_eq!(
-            to_token(&EsString::from("[")).matches(),
-            TokenContent::OpenBracket
-        );
+        assert_eq!(to_token(js_str!("[")).matches(), TokenContent::OpenBracket);
     }
 
     #[test]
     fn token_back_slash() {
-        assert_eq!(
-            to_token(&EsString::from("\\")).matches(),
-            TokenContent::BackSlash
-        );
+        assert_eq!(to_token(js_str!("\\")).matches(), TokenContent::BackSlash);
     }
 
     #[test]
     fn token_close_bracket() {
-        assert_eq!(
-            to_token(&EsString::from("]")).matches(),
-            TokenContent::CloseBracket
-        );
+        assert_eq!(to_token(js_str!("]")).matches(), TokenContent::CloseBracket);
     }
 
     #[test]
     fn token_hat() {
-        assert_eq!(to_token(&EsString::from("^")).matches(), TokenContent::Hat);
+        assert_eq!(to_token(js_str!("^")).matches(), TokenContent::Hat);
     }
 
     #[test]
     fn token_open_brace() {
-        assert_eq!(
-            to_token(&EsString::from("{")).matches(),
-            TokenContent::OpenBrace
-        );
+        assert_eq!(to_token(js_str!("{")).matches(), TokenContent::OpenBrace);
     }
 
     #[test]
     fn token_or() {
-        assert_eq!(to_token(&EsString::from("|")).matches(), TokenContent::Or);
+        assert_eq!(to_token(js_str!("|")).matches(), TokenContent::Or);
     }
 
     #[test]
     fn token_or2() {
-        assert_eq!(to_token(&EsString::from("||")).matches(), TokenContent::Or2);
+        assert_eq!(to_token(js_str!("||")).matches(), TokenContent::Or2);
     }
 
     #[test]
     fn token_close_brace() {
-        assert_eq!(
-            to_token(&EsString::from("}")).matches(),
-            TokenContent::CloseBrace
-        );
+        assert_eq!(to_token(js_str!("}")).matches(), TokenContent::CloseBrace);
     }
 
     #[test]
     fn token_number_literal() {
         assert_eq!(
-            to_token(&EsString::from("123.456")).matches(),
-            TokenContent::NumberLiteral(EsString::from("123.456"))
+            to_token(js_str!("123.456")).matches(),
+            TokenContent::NumberLiteral(JsString::from("123.456"))
         );
     }
 
     #[test]
     fn token_incomplete_number_literal() {
         assert_eq!(
-            to_token(&EsString::from("123.")).matches(),
-            TokenContent::IncompleteNumberLiteral(EsString::from("123."))
+            to_token(js_str!("123.")).matches(),
+            TokenContent::IncompleteNumberLiteral(JsString::from("123."))
         );
     }
 
     #[test]
     fn token_identifier_name() {
         assert_eq!(
-            to_token(&EsString::from("if")).matches(),
-            TokenContent::IdentifierName(EsString::from("if"))
+            to_token(js_str!("if")).matches(),
+            TokenContent::IdentifierName(JsString::from("if"))
         );
     }
 }

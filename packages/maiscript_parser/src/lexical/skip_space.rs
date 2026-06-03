@@ -1,5 +1,5 @@
+use boa_string::CodePoint;
 use maiscript_char_stream::CharStream;
-use maiscript_string::CodePoint;
 
 use crate::{
     error::{AiScriptSyntaxError, AiScriptSyntaxErrorSource, Result},
@@ -36,15 +36,15 @@ impl SkipSpace for CharStream<'_> {
     }
 
     fn skip_comment(&mut self) -> Result<bool> {
-        if self.char().is_none_or(|c| c != CodePoint::from_char('/')) {
+        if self.char().is_none_or(|c| c != CodePoint::Unicode('/')) {
             return Ok(false);
         }
         let Some(next) = self.char_nth(1) else {
             return Ok(false);
         };
-        if next == CodePoint::from_char('*') {
+        if next == CodePoint::Unicode('*') {
             skip_block_comment(self).map(|_| true)
-        } else if next == CodePoint::from_char('/') {
+        } else if next == CodePoint::Unicode('/') {
             skip_line_comment(self);
             Ok(true)
         } else {
@@ -66,17 +66,17 @@ impl SkipSpace for CharStream<'_> {
 fn skip_line_comment(stream: &mut CharStream<'_>) {
     stream.next();
     stream.next();
-    skip(stream, |c| c != CodePoint::from_char('\n'));
+    skip(stream, |c| c != CodePoint::Unicode('\n'));
 }
 
 fn skip_block_comment(stream: &mut CharStream<'_>) -> Result<()> {
     stream.next();
     stream.next();
     loop {
-        if require_next_char(stream)? != CodePoint::from_char('*') {
+        if require_next_char(stream)? != CodePoint::Unicode('*') {
             continue;
         }
-        if require_next_char(stream)? != CodePoint::from_char('/') {
+        if require_next_char(stream)? != CodePoint::Unicode('/') {
             continue;
         }
         break Ok(());
@@ -102,14 +102,15 @@ mod tests {
     use super::*;
 
     mod skip_spacing {
-        use maiscript_string::EsString;
+        use boa_string::JsStr;
+        use boa_string_literal::js_str;
 
         use super::*;
 
         #[test]
         fn empty() {
-            let source = EsString::new();
-            let mut stream = CharStream::new(&source);
+            let source = JsStr::EMPTY;
+            let mut stream = CharStream::new(source);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, false);
             assert_eq!(stream.char(), None);
@@ -117,8 +118,8 @@ mod tests {
 
         #[test]
         fn only_space() {
-            let source = EsString::from(" ");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!(" ");
+            let mut stream = CharStream::new(source);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, true);
             assert_eq!(stream.char(), None);
@@ -126,60 +127,60 @@ mod tests {
 
         #[test]
         fn no_leading_spaces() {
-            let soruce = EsString::from("a");
-            let mut stream = CharStream::new(&soruce);
+            let source = js_str!("a");
+            let mut stream = CharStream::new(source);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, false);
-            assert_eq!(stream.char(), Some(CodePoint::from_char('a')));
+            assert_eq!(stream.char(), Some(CodePoint::Unicode('a')));
         }
 
         #[test]
         fn leading_spaces() {
-            let soruce = EsString::from("  a");
-            let mut stream = CharStream::new(&soruce);
+            let source = js_str!("  a");
+            let mut stream = CharStream::new(source);
             let has_leading_space = stream.skip_space();
             assert_eq!(has_leading_space, true);
-            assert_eq!(stream.char(), Some(CodePoint::from_char('a')));
+            assert_eq!(stream.char(), Some(CodePoint::Unicode('a')));
         }
     }
 
     mod skip_whitespace_and_comments {
-        use maiscript_string::EsString;
+        use boa_string_literal::js_str;
         use maiscript_syntax::Position;
 
         use super::*;
 
         #[test]
         fn new_lines() {
-            let source = EsString::from("\n\na");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!("\n\na");
+            let mut stream = CharStream::new(source);
             let result = stream.skip_whitespace_and_comments();
             result.expect("should have been ok");
-            assert_eq!(stream.char(), Some(CodePoint::from_char('a')));
+            assert_eq!(stream.char(), Some(CodePoint::Unicode('a')));
         }
 
         #[test]
         fn line_comment() {
-            let source = EsString::from("//a\nb");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!("//a\nb");
+            let mut stream = CharStream::new(source);
             let result = stream.skip_whitespace_and_comments();
             result.expect("should have been ok");
-            assert_eq!(stream.char(), Some(CodePoint::from_char('b')));
+            assert_eq!(stream.char(), Some(CodePoint::Unicode('b')));
         }
 
         #[test]
         fn closed_block_comment() {
-            let source = EsString::from("/*a*/b");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!("/*a*/b");
+            let mut stream = CharStream::new(source);
             let result = stream.skip_whitespace_and_comments();
             assert!(result.is_ok());
-            assert_eq!(stream.char(), Some(CodePoint::from_char('b')));
+            assert_eq!(stream.char(), Some(CodePoint::Unicode('b')));
         }
 
         #[test]
         fn error_with_opened_block_comment() {
-            let source = EsString::from("/*a");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!("/*a");
+            let mut stream = CharStream::new(source);
             let result = stream.skip_whitespace_and_comments();
             assert!(
                 result.is_err_and(|e| matches!(e.source, AiScriptSyntaxErrorSource::UnexpectedEOF))
@@ -188,8 +189,8 @@ mod tests {
 
         #[test]
         fn error_with_opened_block_comment_asterisk() {
-            let source = EsString::from("/*a*");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!("/*a*");
+            let mut stream = CharStream::new(source);
             let result = stream.skip_whitespace_and_comments();
             assert!(result.is_err_and(|e| {
                 matches!(e.source, AiScriptSyntaxErrorSource::UnexpectedEOF)
@@ -199,11 +200,11 @@ mod tests {
 
         #[test]
         fn multiple_comments() {
-            let source = EsString::from("/*a*/\n//b\nc");
-            let mut stream = CharStream::new(&source);
+            let source = js_str!("/*a*/\n//b\nc");
+            let mut stream = CharStream::new(source);
             let result = stream.skip_whitespace_and_comments();
             assert!(result.is_ok());
-            assert_eq!(stream.char(), Some(CodePoint::from_char('c')));
+            assert_eq!(stream.char(), Some(CodePoint::Unicode('c')));
         }
     }
 }

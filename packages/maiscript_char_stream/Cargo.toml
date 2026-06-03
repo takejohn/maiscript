@@ -4,5 +4,6 @@ version = "0.1.0"
 edition = "2024"
 
 [dependencies]
-maiscript_string = { path = "../maiscript_string" }
+boa_string = "0.21.1"
+boa_string_literal = "0.1.1"
 maiscript_syntax = { path = "../maiscript_syntax" }

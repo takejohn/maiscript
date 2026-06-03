@@ -1,6 +1,6 @@
 use std::borrow::Cow;
 
-use maiscript_string::{EsStr, EsString};
+use boa_string::{JsStr, JsString};
 use maiscript_syntax::Range;
 
 #[derive(Debug, PartialEq, Eq)]
@@ -9,13 +9,13 @@ pub(crate) enum TokenContent {
     NewLine,
 
     /// Identifier or Keyword
-    IdentifierName(EsString),
+    IdentifierName(JsString),
 
     // literal
-    NumberLiteral(EsString),
+    NumberLiteral(JsString),
     /// number literal with trailing decimal point lacking fraction part
-    IncompleteNumberLiteral(EsString),
-    StringLiteral(EsString),
+    IncompleteNumberLiteral(JsString),
+    StringLiteral(JsString),
     /// string literal without closing quotation mark
     IncompleteStringLiteral,
 
@@ -99,7 +99,7 @@ pub(crate) enum TokenContent {
     /// "}"
     CloseBrace,
 
-    Unknown(Cow<'static, EsStr>),
+    Unknown(JsString),
 }
 
 #[derive(Debug)]
@@ -112,7 +112,7 @@ pub(crate) struct Token {
 #[derive(Debug)]
 pub(crate) enum TemplateTokenContent {
     /// string until "{", where last "{" is omitted
-    Part(EsString),
+    Part(JsString),
     /// "`"
     End,
 }
